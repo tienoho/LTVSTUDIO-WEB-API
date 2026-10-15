@@ -662,8 +662,10 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
     if (pathname === '/api/admin/verify-session' && req.method === 'GET') {
       if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
       return sendJson(200, {
+        valid: true,
         success: true,
         authenticated: true,
+        username: 'admin',
         user: {
           username: 'admin',
           role: 'SuperAdmin'
@@ -681,7 +683,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
     }
 
     // ── 0.1 ADMIN: ACTIVATION AUDIT LOGS ───────────────────────
-    if (pathname === '/api/admin/licenses/logs' && req.method === 'GET') {
+    if ((pathname === '/api/admin/licenses/logs' || pathname === '/api/admin/logs') && req.method === 'GET') {
       if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const searchKey = ((query.key as string) || '').trim();
@@ -1165,6 +1167,70 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       }
 
       return sendJson(200, { success: true, message: `Đã xóa mã bản quyền ${key} thành công!` });
+    }
+
+    // ── 10.1 RESTFUL LICENSE RESOURCE: PUT & DELETE /api/admin/licenses/:key ──
+    const pathAction = pathname.replace('/api/admin/licenses/', '');
+    if (pathname.startsWith('/api/admin/licenses/') && pathAction && !['create', 'reset-hwid', 'toggle-status', 'extend', 'delete', 'logs'].includes(pathAction)) {
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const rawParamKey = decodeURIComponent(pathAction).trim().toUpperCase();
+
+      if (req.method === 'DELETE') {
+        if (useNeon) {
+          await neonDb.deleteLicense(rawParamKey);
+        } else {
+          let licenses = await getFallbackLicenses();
+          licenses = licenses.filter(l => l.key.toUpperCase() !== rawParamKey);
+          await saveFallbackLicenses(licenses);
+        }
+        return sendJson(200, { success: true, message: `Đã xóa mã bản quyền ${rawParamKey} thành công!` });
+      }
+
+      if (req.method === 'PUT') {
+        const body = await getBody(65536);
+        const updates: Partial<License> = {};
+
+        if (body.resetHwid) {
+          updates.machineId = null;
+        }
+        if (body.status) {
+          updates.status = body.status;
+        }
+        if (body.plan) {
+          updates.plan = body.plan;
+          updates.type = `LTVStudio ${body.plan}`;
+        }
+        if (body.addDays) {
+          const days = parseInt(body.addDays) || 30;
+          let currentExp = new Date();
+          let targetItem: License | null = null;
+          if (useNeon) {
+            targetItem = await neonDb.getLicenseByKey(rawParamKey);
+          } else {
+            const lics = await getFallbackLicenses();
+            targetItem = lics.find(l => l.key.toUpperCase() === rawParamKey) || null;
+          }
+          if (targetItem && targetItem.expiresAt && targetItem.expiresAt !== 'LIFETIME') {
+            const parsed = new Date(targetItem.expiresAt);
+            if (parsed > new Date()) currentExp = parsed;
+          }
+          updates.expiresAt = new Date(currentExp.getTime() + days * 86400000).toISOString();
+          updates.status = 'ACTIVE';
+        } else if (body.expiresAt !== undefined) {
+          updates.expiresAt = body.expiresAt;
+        }
+
+        if (useNeon) {
+          await neonDb.updateLicense(rawParamKey, updates);
+        } else {
+          const licenses = await getFallbackLicenses();
+          const item = licenses.find(l => l.key.toUpperCase() === rawParamKey);
+          if (item) Object.assign(item, updates);
+          await saveFallbackLicenses(licenses);
+        }
+
+        return sendJson(200, { success: true, message: `Đã cập nhật mã bản quyền ${rawParamKey} thành công!`, updates });
+      }
     }
 
     // ── 11. ADMIN GET / UPDATE VERSION CONFIG ──────────────────

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "changelog": "• Ra mắt phiên bản LTVStudio 1.0.0 Pro Edition\n• Tích hợp giọng đọc Microsoft Edge Neural (Hoài My, Nam Minh) siêu tự nhiên\n• Khắc phục hoàn toàn lỗi dịch thuật 50 dòng\n• Hỗ trợ xuất phụ đề Song Ngữ và tương thích font Premiere/CapCut",
+  "changelog": "• Ra mắt bản thương mại 1.0.0",
   "download_url": "https://ltvstudio-web-api.vercel.app/downloads/LTVStudio-Windows-Setup.exe",
   "force_update": false,
-  "updated_at": "2026-10-14T12:00:00Z"
+  "updated_at": "2026-10-15T09:30:46.719Z"
 }
