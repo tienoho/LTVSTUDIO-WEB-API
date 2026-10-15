@@ -241,8 +241,8 @@ def run_rbac_test_suite():
         print("==================================================================")
 
     finally:
-        proc.terminate()
-        proc.kill()
+        if proc:
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
         print("Đã dừng server test an toàn.")
 
 if __name__ == '__main__':

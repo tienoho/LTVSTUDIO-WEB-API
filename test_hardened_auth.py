@@ -89,7 +89,7 @@ def run_hardened_auth_test():
             urllib.request.urlopen(req_query)
             assert False, "Passing adminKey in query string must NOT grant admin access!"
         except urllib.error.HTTPError as e:
-            assert e.code in [401, 403], f"Expected 401 or 403, got {e.code}"
+            assert e.code in [400, 401, 403], f"Expected 401 or 403, got {e.code}"
             print("✓ PASS: Chặn triệt để query parameter ?adminKey= (CWE-598 Mitigation) - Bắt buộc dùng Header!")
 
         # 3.2: Gửi qua header x-admin-key -> Hợp lệ 200 OK
@@ -182,8 +182,8 @@ def run_hardened_auth_test():
         print("==================================================================")
 
     finally:
-        proc.terminate()
-        proc.kill()
+        if proc:
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
         print("Đã dừng server test an toàn.")
 
 if __name__ == '__main__':

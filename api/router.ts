@@ -34,6 +34,9 @@ export async function routeRequest(ctx: HttpContext): Promise<void> {
   if (pathname === '/api/admin/change-password' && method === 'POST') {
     return await AuthController.changePassword(ctx);
   }
+  if (pathname === '/api/admin/security/reset-lockout' && method === 'POST') {
+    return await AuthController.resetLockout(ctx);
+  }
 
   // 3. User Management
   if (pathname === '/api/admin/users') {

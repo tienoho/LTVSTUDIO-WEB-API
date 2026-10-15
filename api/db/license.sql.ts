@@ -97,6 +97,8 @@ export async function updateLicense(key: string, updates: Partial<License>): Pro
     const current = await getLicenseByKey(key);
     if (!current) return false;
 
+    const newCustomer = updates.customer !== undefined ? updates.customer : current.customer;
+    const newNotes = updates.notes !== undefined ? updates.notes : current.notes;
     const newMachineId = updates.machineId !== undefined ? updates.machineId : current.machineId;
     const newStatus = updates.status !== undefined ? updates.status : current.status;
     const newExpiresAt = updates.expiresAt !== undefined ? updates.expiresAt : current.expiresAt;
@@ -108,6 +110,8 @@ export async function updateLicense(key: string, updates: Partial<License>): Pro
     await sql`
       UPDATE licenses 
       SET 
+        customer = ${newCustomer || ''},
+        notes = ${newNotes || ''},
         machine_id = ${newMachineId},
         status = ${newStatus},
         expires_at = ${newExpiresAt},

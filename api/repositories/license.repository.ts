@@ -94,7 +94,6 @@ export async function createLicensesBatch(newKeys: License[]): Promise<void> {
   if (neonDb.isNeonConfigured()) {
     try {
       await neonDb.createLicensesBatch(newKeys);
-      return;
     } catch (e) {}
   }
 
@@ -108,7 +107,6 @@ export async function updateLicense(key: string, updates: Partial<License>): Pro
   if (neonDb.isNeonConfigured()) {
     try {
       await neonDb.updateLicense(cleanKey, updates);
-      return;
     } catch (e) {}
   }
 

@@ -130,3 +130,15 @@ if (typeof setInterval !== 'undefined') {
   }, 120000);
   if (timer.unref) timer.unref();
 }
+
+export function resetAllLocks(ip?: string): void {
+  if (ip) {
+    verifyFailMap.delete(ip);
+    adminFailMap.delete(ip);
+    rateLimitMap.delete(ip);
+  } else {
+    verifyFailMap.clear();
+    adminFailMap.clear();
+    rateLimitMap.clear();
+  }
+}

@@ -66,7 +66,6 @@ export async function updateVersion(updateData: Partial<VersionConfig>): Promise
   if (neonDb.isNeonConfigured()) {
     try {
       await neonDb.updateVersionConfig(updateData);
-      return;
     } catch (e) {}
   }
 

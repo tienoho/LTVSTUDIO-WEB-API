@@ -75,14 +75,15 @@ export async function getUserByUsername(username: string): Promise<User | null> 
 }
 
 export async function createUser(user: User): Promise<boolean> {
+  const existing = await getUserByUsername(user.username);
+  if (existing) return false;
+
   if (neonDb.isNeonConfigured()) {
     try {
       await neonDb.createDbUser(user);
     } catch (e) {}
   }
   const users = await getFallbackUsers();
-  const exists = users.find(u => u.username.toLowerCase() === user.username.toLowerCase());
-  if (exists) return false;
   users.push({
     ...user,
     id: users.length > 0 ? Math.max(...users.map(u => u.id || 0)) + 1 : 1,

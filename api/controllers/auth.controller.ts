@@ -3,7 +3,7 @@
  */
 
 import { HttpContext } from '../http/context';
-import { checkAdminLock, recordAdminFailure, resetAdminFailure } from '../security/rate-limiter';
+import { checkAdminLock, recordAdminFailure, resetAdminFailure, resetAllLocks } from '../security/rate-limiter';
 import { validateRoleCredentials, createAdminSessionToken, ROLE_PERMISSIONS } from '../security/auth';
 import { AUTH_TOKEN_TTL_SECONDS } from '../config/constants';
 import * as userRepo from '../repositories/user.repository';
@@ -171,6 +171,21 @@ export class AuthController {
       message: isSelf
         ? 'Đổi mật khẩu thành công! Vui lòng ghi nhớ mật khẩu mới của bạn.'
         : `Đã thiết lập lại mật khẩu cho tài khoản '${targetUsername}' thành công!`
+    });
+  }
+
+  public static async resetLockout(ctx: HttpContext): Promise<void> {
+    const session = ctx.getAuthorizedAdminSession();
+    if (!session.authorized) return ctx.sendAdminUnauthorized();
+    if (session.role !== 'SuperAdmin') {
+      return ctx.sendJson(403, { error: 'Forbidden', message: 'Ch? SuperAdmin m?i c quy?n m? kha IP.' });
+    }
+    const body = await ctx.getBody(4096);
+    const targetIp = (body.ip || '').trim();
+    resetAllLocks(targetIp || undefined);
+    return ctx.sendJson(200, {
+      success: true,
+      message: targetIp ? `Đã mở khóa IP ${targetIp} thành công!` : 'Đã mở khóa toàn bộ IP trong hệ thống!'
     });
   }
 }
