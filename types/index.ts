@@ -33,7 +33,15 @@ export interface VersionConfig {
   updatedAt?: string;
 }
 
-export type ActivationStatus = 'SUCCESS' | 'WRONG_HWID' | 'EXPIRED' | 'REVOKED' | 'NOT_FOUND' | 'INVALID';
+export type ActivationStatus =
+  | 'SUCCESS'
+  | 'WRONG_HWID'
+  | 'EXPIRED'
+  | 'REVOKED'
+  | 'NOT_FOUND'
+  | 'INVALID'
+  | 'INVALID_HWID'
+  | 'BLOCKED_BRUTE_FORCE';
 
 export interface ActivationLog {
   id?: number;
@@ -58,6 +66,37 @@ export interface VerifyResponseBody {
   licenseType: string;
   expiresAt: string | null;
   machineId: string | null;
+  message: string;
+  token?: string;       // HMAC-SHA256 signature (tamper-proof)
+  timestamp?: number;   // Epoch ms timestamp (anti-replay)
+  nonce?: string;       // Cryptographic random nonce
+}
+
+export interface AdminLoginRequest {
+  username?: string;
+  password?: string;
+  secret?: string;
+}
+
+export interface AdminLoginResponse {
+  success: boolean;
+  token?: string;
+  expiresIn?: number;
+  user?: {
+    username: string;
+    role: string;
+    loginAt?: string;
+  };
+  message: string;
+}
+
+export interface AdminSessionVerifyResponse {
+  success: boolean;
+  authenticated: boolean;
+  user?: {
+    username: string;
+    role: string;
+  };
   message: string;
 }
 

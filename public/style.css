@@ -1666,3 +1666,187 @@ body {
   color: #94a3b8;
   border: 1px solid rgba(148, 163, 184, 0.3);
 }
+
+
+/* ============================================================
+   ADMIN AUTHENTICATION & SESSION MANAGEMENT STYLES
+   ============================================================ */
+
+/* 1. Admin Profile Pill in Navbar */
+.admin-profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(0, 242, 254, 0.28);
+  border-radius: 9999px;
+  padding: 0.35rem 0.65rem 0.35rem 0.45rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+.admin-profile-pill:hover {
+  border-color: rgba(0, 242, 254, 0.55);
+  box-shadow: 0 4px 20px rgba(0, 242, 254, 0.15);
+}
+.admin-avatar-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #070a12;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.admin-pill-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.admin-pill-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+.admin-pill-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #10b981;
+  letter-spacing: 0.02em;
+}
+.btn-pill-logout {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: all 0.2s ease;
+  margin-left: 0.2rem;
+}
+.btn-pill-logout:hover {
+  background: #f43f5e;
+  color: #fff;
+  border-color: #f43f5e;
+  transform: scale(1.1);
+}
+
+/* 2. Admin Logout Button in Topbar */
+.btn-outline-danger {
+  background: rgba(244, 63, 94, 0.08);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+.btn-outline-danger:hover {
+  background: rgba(244, 63, 94, 0.22);
+  color: #fff;
+  border-color: #f43f5e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.28);
+}
+
+/* 3. Modern Login Modal Box */
+.modal-login-box {
+  max-width: 440px;
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(0, 242, 254, 0.1);
+}
+.login-modal-header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.login-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(0, 242, 254, 0.12);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+.login-modal-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+/* 4. Password Input with Eye Toggle */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.password-input-wrapper input {
+  padding-right: 2.75rem;
+}
+.btn-toggle-eye {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.3rem;
+  transition: color 0.2s ease;
+}
+.btn-toggle-eye:hover {
+  color: var(--accent-cyan);
+}
+
+/* 5. Login Options Row & Error Banner */
+.login-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+.remember-label input[type="checkbox"] {
+  accent-color: var(--accent-cyan);
+  width: 15px;
+  height: 15px;
+}
+.security-chip {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(0, 242, 254, 0.08);
+  border: 1px solid rgba(0, 242, 254, 0.2);
+  border-radius: 9999px;
+  color: var(--accent-cyan);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.login-error-banner {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.84rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}

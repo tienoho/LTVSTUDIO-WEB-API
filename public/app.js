@@ -4,8 +4,11 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Global State
-  let currentAdminKey = localStorage.getItem('ltv_admin_key') || 'ltvstudio_secret_admin_2026';
+  // Global State & Session Auth
+  let currentAdminToken = localStorage.getItem('ltv_admin_token') || sessionStorage.getItem('ltv_admin_token') || '';
+  let currentAdminKey = localStorage.getItem('ltv_admin_key') || sessionStorage.getItem('ltv_admin_key') || '';
+  let currentAdminUser = null;
+  let isAdminLoggedIn = false;
   let cachedLicenses = [];
   let selectedKeySet = new Set();
 
@@ -256,6 +259,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (viewId === 'admin-center') {
+      if (!isAdminLoggedIn) {
+        openAdminLoginModal();
+        return;
+      }
       loadAdminDashboard();
     }
   }
@@ -263,9 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
   navLinks.forEach(btn => {
     btn.addEventListener('click', () => {
       const targetView = btn.dataset.view;
-      if (targetView === 'admin-center' && !localStorage.getItem('ltv_admin_key')) {
-        adminAuthModal.classList.add('active');
-        adminSecretInput.value = currentAdminKey;
+      if (targetView === 'admin-center' && !isAdminLoggedIn) {
+        openAdminLoginModal();
       } else {
         switchView(targetView);
       }
@@ -426,10 +432,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 3. ADMIN CENTER CONTROLLER ─────────────────────────────
   function getAdminHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      'x-admin-key': currentAdminKey
+    const headers = {
+      'Content-Type': 'application/json'
     };
+    if (currentAdminToken) {
+      headers['Authorization'] = `Bearer ${currentAdminToken}`;
+    }
+    if (currentAdminKey) {
+      headers['x-admin-key'] = currentAdminKey;
+      if (!headers['Authorization']) {
+        headers['Authorization'] = `Bearer ${currentAdminKey}`;
+      }
+    }
+    return headers;
+  }
+
+  function updateAdminUiState(loggedIn, username = 'Admin') {
+    const navPill = document.getElementById('navAdminProfilePill');
+    const navName = document.getElementById('navAdminName');
+    const btnLogout = document.getElementById('btnAdminLogout');
+
+    if (navPill) {
+      navPill.style.display = loggedIn ? 'flex' : 'none';
+    }
+    if (navName) {
+      navName.textContent = username;
+    }
+    if (btnLogout) {
+      btnLogout.style.display = loggedIn ? 'inline-flex' : 'none';
+    }
+  }
+
+  function clearAdminSession() {
+    currentAdminToken = '';
+    currentAdminKey = '';
+    currentAdminUser = null;
+    isAdminLoggedIn = false;
+    localStorage.removeItem('ltv_admin_token');
+    localStorage.removeItem('ltv_admin_key');
+    sessionStorage.removeItem('ltv_admin_token');
+    sessionStorage.removeItem('ltv_admin_key');
+  }
+
+  async function verifyAdminSessionOnLoad() {
+    if (!currentAdminToken && !currentAdminKey) {
+      updateAdminUiState(false);
+      return false;
+    }
+
+    try {
+      const res = await fetch('/api/admin/verify-session', { headers: getAdminHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        isAdminLoggedIn = true;
+        currentAdminUser = data.user || { username: 'admin', role: 'SuperAdmin' };
+        updateAdminUiState(true, currentAdminUser.username);
+        return true;
+      } else {
+        clearAdminSession();
+        updateAdminUiState(false);
+        return false;
+      }
+    } catch (e) {
+      console.warn('Session check failed:', e);
+      return false;
+    }
+  }
+
+  function handleSessionExpired() {
+    showToast('Phiên đăng nhập Quản trị viên đã hết hạn. Vui lòng đăng nhập lại!', 'error');
+    clearAdminSession();
+    updateAdminUiState(false);
+    switchView('public-portal');
+    openAdminLoginModal();
   }
 
   async function loadAdminDashboard() {
@@ -438,10 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadAdminStats() {
     try {
-      const res = await fetch(`/api/admin/stats?adminKey=${encodeURIComponent(currentAdminKey)}`);
-      if (res.status === 401) {
-        showToast('Mã Admin Secret chưa đúng! Vui lòng cấu hình lại.', 'error');
-        adminAuthModal.classList.add('active');
+      const res = await fetch(`/api/admin/stats`, { headers: getAdminHeaders() });
+      if (res.status === 401 || res.status === 403) {
+        handleSessionExpired();
         return;
       }
       const data = await res.json();
@@ -503,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const status = encodeURIComponent(adminStatusFilter.value);
       const planEl = document.getElementById('adminPlanFilter');
       const plan = planEl ? encodeURIComponent(planEl.value) : 'ALL';
-      const res = await fetch(`/api/admin/licenses?search=${q}&status=${status}&plan=${plan}&adminKey=${encodeURIComponent(currentAdminKey)}`, {
+      const res = await fetch(`/api/admin/licenses?search=${q}&status=${status}&plan=${plan}`, {
         headers: getAdminHeaders()
       });
 
@@ -937,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── BACKUP & RESTORE JSON ──────────────────────────────────
   btnExportBackup.addEventListener('click', async () => {
     try {
-      const res = await fetch(`/api/admin/backup?adminKey=${encodeURIComponent(currentAdminKey)}`);
+      const res = await fetch(`/api/admin/backup`, { headers: getAdminHeaders() });
       if (!res.ok) return showToast('Không thể xuất dữ liệu backup', 'error');
       const data = await res.json();
 
@@ -989,25 +1063,140 @@ document.addEventListener('DOMContentLoaded', () => {
     e.target.value = '';
   });
 
-  // ── ADMIN AUTH MODAL ───────────────────────────────────────
-  btnChangeAdminSecret.addEventListener('click', () => {
-    adminSecretInput.value = currentAdminKey;
-    adminAuthModal.classList.add('active');
-  });
-  btnCloseAuthModal.addEventListener('click', () => adminAuthModal.classList.remove('active'));
+  // ── ADMIN AUTH & SESSION CONTROLLER (STANDARDIZED) ────────
+  const adminAuthModal = document.getElementById('adminAuthModal');
+  const adminUsernameInput = document.getElementById('adminUsernameInput');
+  const adminSecretInput = document.getElementById('adminSecretInput');
+  const btnTogglePasswordEye = document.getElementById('btnTogglePasswordEye');
+  const eyeIcon = document.getElementById('eyeIcon');
+  const checkRememberAdmin = document.getElementById('checkRememberAdmin');
+  const adminLoginError = document.getElementById('adminLoginError');
+  const adminLoginErrorText = document.getElementById('adminLoginErrorText');
+  const btnSubmitAdminAuth = document.getElementById('btnSubmitAdminAuth');
+  const btnCloseAuthModal = document.getElementById('btnCloseAuthModal');
+  const btnCancelAdminAuth = document.getElementById('btnCancelAdminAuth');
+  const btnAdminLogout = document.getElementById('btnAdminLogout');
+  const btnNavLogout = document.getElementById('btnNavLogout');
 
-  btnSubmitAdminAuth.addEventListener('click', () => {
-    const val = adminSecretInput.value.trim();
-    if (!val) {
-      showToast('Vui lòng nhập mã bí mật!', 'error');
-      return;
-    }
-    currentAdminKey = val;
-    localStorage.setItem('ltv_admin_key', val);
-    adminAuthModal.classList.remove('active');
-    showToast('Đã lưu mã Admin Secret!', 'success');
-    switchView('admin-center');
-  });
+  function openAdminLoginModal() {
+    if (adminLoginError) adminLoginError.style.display = 'none';
+    if (adminAuthModal) adminAuthModal.classList.add('active');
+    setTimeout(() => {
+      if (adminSecretInput) adminSecretInput.focus();
+    }, 150);
+  }
+
+  function closeAdminLoginModal() {
+    if (adminAuthModal) adminAuthModal.classList.remove('active');
+    if (adminLoginError) adminLoginError.style.display = 'none';
+  }
+
+  if (btnCloseAuthModal) btnCloseAuthModal.addEventListener('click', closeAdminLoginModal);
+  if (btnCancelAdminAuth) btnCancelAdminAuth.addEventListener('click', closeAdminLoginModal);
+
+  // Toggle Password Eye visibility
+  if (btnTogglePasswordEye && adminSecretInput && eyeIcon) {
+    btnTogglePasswordEye.addEventListener('click', () => {
+      const isPass = adminSecretInput.type === 'password';
+      adminSecretInput.type = isPass ? 'text' : 'password';
+      eyeIcon.className = isPass ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+    });
+  }
+
+  // Handle Login Submit
+  if (btnSubmitAdminAuth) {
+    btnSubmitAdminAuth.addEventListener('click', async () => {
+      const username = (adminUsernameInput ? adminUsernameInput.value.trim() : 'admin') || 'admin';
+      const secret = adminSecretInput ? adminSecretInput.value.trim() : '';
+      const remember = checkRememberAdmin ? checkRememberAdmin.checked : true;
+
+      if (!secret) {
+        if (adminLoginError && adminLoginErrorText) {
+          adminLoginErrorText.textContent = 'Vui lòng nhập mật khẩu Quản trị viên!';
+          adminLoginError.style.display = 'flex';
+        }
+        showToast('Vui lòng nhập mật khẩu Quản trị viên!', 'error');
+        if (adminSecretInput) adminSecretInput.focus();
+        return;
+      }
+
+      btnSubmitAdminAuth.disabled = true;
+      btnSubmitAdminAuth.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xác thực an toàn...';
+      if (adminLoginError) adminLoginError.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, secret, password: secret })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          const errMsg = data.message || 'Mã Admin Secret hoặc mật khẩu không chính xác!';
+          if (adminLoginError && adminLoginErrorText) {
+            adminLoginErrorText.textContent = errMsg;
+            adminLoginError.style.display = 'flex';
+          }
+          showToast(errMsg, 'error');
+          return;
+        }
+
+        // Login Succeeded!
+        currentAdminToken = data.token || '';
+        currentAdminKey = secret;
+        currentAdminUser = data.user || { username, role: 'SuperAdmin' };
+        isAdminLoggedIn = true;
+
+        const storage = remember ? localStorage : sessionStorage;
+        if (data.token) storage.setItem('ltv_admin_token', data.token);
+        storage.setItem('ltv_admin_key', secret);
+
+        closeAdminLoginModal();
+        updateAdminUiState(true, currentAdminUser.username);
+        showToast('✓ ' + (data.message || 'Đăng nhập Quản trị viên thành công!'), 'success');
+
+        switchView('admin-center');
+      } catch (e) {
+        showToast('Lỗi kết nối máy chủ: ' + e.message, 'error');
+      } finally {
+        btnSubmitAdminAuth.disabled = false;
+        btnSubmitAdminAuth.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống';
+      }
+    });
+  }
+
+  if (adminSecretInput) {
+    adminSecretInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') btnSubmitAdminAuth.click();
+    });
+  }
+
+  // Handle Standard Logout
+  async function performAdminLogout() {
+    const confirmed = await customConfirm(
+      'Xác Nhận Đăng Xuất',
+      'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản Quản trị viên không?'
+    );
+    if (!confirmed) return;
+
+    try {
+      await fetch('/api/admin/logout', {
+        method: 'POST',
+        headers: getAdminHeaders()
+      });
+    } catch (e) {}
+
+    clearAdminSession();
+    cachedLicenses = [];
+    selectedKeySet.clear();
+    updateAdminUiState(false);
+    switchView('public-portal');
+    showToast('✓ Đã đăng xuất khỏi tài khoản Quản trị viên an toàn!', 'success');
+  }
+
+  if (btnAdminLogout) btnAdminLogout.addEventListener('click', performAdminLogout);
+  if (btnNavLogout) btnNavLogout.addEventListener('click', performAdminLogout);
 
 
   // ── UPGRADE 1: CUSTOMER HANDOVER GENERATOR ──────────────────
@@ -1157,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const url = `/api/admin/licenses/logs?key=${encodeURIComponent(key)}&limit=100&adminKey=${encodeURIComponent(currentAdminKey)}`;
+      const url = `/api/admin/licenses/logs?key=${encodeURIComponent(key)}&limit=100`;
       const res = await fetch(url, { headers: getAdminHeaders() });
       if (!res.ok) {
         if (auditLogsTableBody) auditLogsTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-rose">Không thể tải nhật ký (Chưa đăng nhập Admin)</td></tr>`;
@@ -1254,6 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── INITIALIZATION & DEEP LINK HANDLING ─────────────────────
   loadPublicVersion();
+  verifyAdminSessionOnLoad();
 
   // Check URL parameters (e.g. ?key=LTV-PRO-XXXX)
   const urlParams = new URLSearchParams(window.location.search);
@@ -1269,11 +1459,17 @@ document.addEventListener('DOMContentLoaded', () => {
   } else if (hash === 'lookup') {
     switchView('license-check', false);
   } else if (hash === 'admin') {
-    if (localStorage.getItem('ltv_admin_key')) {
-      switchView('admin-center', false);
+    if (isAdminLoggedIn || currentAdminToken || currentAdminKey) {
+      verifyAdminSessionOnLoad().then(ok => {
+        if (ok) switchView('admin-center', false);
+        else {
+          switchView('public-portal', false);
+          openAdminLoginModal();
+        }
+      });
     } else {
       switchView('public-portal', false);
-      adminAuthModal.classList.add('active');
+      openAdminLoginModal();
     }
   } else {
     switchView('public-portal', false);

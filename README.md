@@ -131,9 +131,16 @@ Content-Type: application/json
   "licenseType": "LTVStudio Pro Lifetime",
   "expiresAt": "Không giới hạn (Lifetime)",
   "machineId": "WIN-GUID-12345678",
-  "message": "✓ Bản quyền hợp lệ và đã kích hoạt thành công!"
+  "message": "✓ Bản quyền hợp lệ và đã kích hoạt thành công!",
+  "token": "9b0adae8e85f0427aa3f74b6219fdba37537823344c004c6c98eafec0a8c85c3",
+  "timestamp": 1792045545124,
+  "nonce": "07b483c22617d8d1440a0251b03ff355"
 }
 ```
+*Ghi chú bảo mật:*
+- `token`: Chữ ký số HMAC-SHA256 chống can thiệp gói tin (Anti-Tamper / Anti-MITM proxy spoofing).
+- `timestamp` & `nonce`: Chống tấn công phát lại (Anti-Replay Protection).
+- Tự động khóa IP tạm thời 15 phút (HTTP 429) nếu thử sai mã license quá 5 lần liên tiếp (Anti-Brute-Force).
 
 #### • Tra cứu bản quyền công khai (Public Lookup)
 ```http
@@ -185,10 +192,13 @@ GET /api/health
 ---
 
 ### 3. Dành Cho Quản Trị Viên (Admin API)
-*Yêu cầu header xác thực: `x-admin-key: <ADMIN_SECRET>` hoặc `Authorization: Bearer <ADMIN_SECRET>`.*
+*Yêu cầu header xác thực bảo mật: `x-admin-key: <ADMIN_SECRET>` hoặc `Authorization: Bearer <SESSION_TOKEN_HOAC_SECRET>` (Không chấp nhận tham số query URL để phòng chống CWE-598).*
+*Tự động khóa IP 15 phút nếu nhập sai mật khẩu Admin quá 5 lần liên tiếp.*
 
 | Phương thức | Đường dẫn API | Chức năng |
 | :--- | :--- | :--- |
+| `POST` | `/api/admin/login` | Đăng nhập Quản trị viên, cấp signed session token (JWT-like HMAC token) |
+| `GET` | `/api/admin/verify-session` | Kiểm tra tính hợp lệ của token phiên quản trị viên |
 | `GET` | `/api/admin/stats` | Thống kê số lượng key, số máy hoạt động, phiên bản app |
 | `GET` | `/api/admin/licenses` | Lấy danh sách key (Hỗ trợ query: `search`, `status`, `plan`) |
 | `POST` | `/api/admin/licenses/create` | Tạo mới hoặc sinh key hàng loạt (Tối đa 100 key/lần) |
@@ -248,8 +258,14 @@ python test_full_suite.py
 
 # 3. Kiểm thử 5 tính năng nâng cấp (Health, Audit Logs, Bộ lọc, Bàn giao, Excel)
 python test_upgrades_suite.py
+
+# 4. Kiểm thử bộ tính năng bảo mật Auth thắt chặt (Chữ ký HMAC, Khóa HWID, Chống Brute-force, Session token)
+python test_hardened_auth.py
+
+# 5. Kiểm thử chuẩn quy trình Đăng nhập, Xác thực phiên, Đăng xuất tài khoản Admin
+python test_admin_login_logout.py
 ```
-*Tất cả 17/17 test cases đều đạt chuẩn 100% PASS.*
+*Tất cả 27/27 test cases đều đạt chuẩn 100% PASS.*
 
 ---
 

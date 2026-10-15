@@ -42,6 +42,18 @@
       </nav>
 
       <div class="nav-actions">
+        <div class="admin-profile-pill" id="navAdminProfilePill" style="display: none;">
+          <div class="admin-avatar-box">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div class="admin-pill-info">
+            <span class="admin-pill-name" id="navAdminName">Admin</span>
+            <span class="admin-pill-badge">Online</span>
+          </div>
+          <button class="btn-pill-logout" id="btnNavLogout" title="Đăng xuất quản trị viên">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
         <div class="health-pill" id="navHealthPill" title="Bấm để xem trạng thái sức khỏe hệ thống & CSDL">
           <span class="status-indicator-dot"></span>
           <span id="healthPillText">API Online</span>
@@ -223,8 +235,8 @@
           <button class="btn btn-primary" id="btnOpenCreateModal">
             <i class="fa-solid fa-plus"></i> Phát Hành Key Mới
           </button>
-          <button class="btn btn-glass" id="btnChangeAdminSecret" title="Đổi Secret Key">
-            <i class="fa-solid fa-key"></i>
+          <button class="btn btn-outline-danger" id="btnAdminLogout" title="Đăng xuất khỏi tài khoản Quản trị">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng Xuất
           </button>
         </div>
       </div>
@@ -459,7 +471,7 @@
             <h4>/api/transform/version (hoặc /api/version)</h4>
             <p>Client desktop gọi lên khi khởi động để kiểm tra cập nhật.</p>
             <div class="code-preview-wrapper">
-              <pre><code>curl https://your-domain.vercel.app/api/transform/version</code></pre>
+              <pre><code>curl https://ltvstudio-web-api.vercel.app/api/transform/version</code></pre>
               <button class="btn-copy-code" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i></button>
             </div>
           </div>
@@ -469,7 +481,7 @@
             <h4>/api/auth/verify</h4>
             <p>Xác thực mã bản quyền và tự động liên kết với HWID của máy tính.</p>
             <div class="code-preview-wrapper">
-              <pre><code>curl -X POST https://your-domain.vercel.app/api/auth/verify   -H "Content-Type: application/json"   -d '{"licenseKey": "LTV-PRO-XXXX-XXXX-XXXX", "machineId": "WIN-UUID-123456"}'</code></pre>
+              <pre><code>curl -X POST https://ltvstudio-web-api.vercel.app/api/auth/verify   -H "Content-Type: application/json"   -d '{"licenseKey": "LTV-PRO-XXXX-XXXX-XXXX", "machineId": "WIN-UUID-123456"}'</code></pre>
               <button class="btn-copy-code" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i></button>
             </div>
           </div>
@@ -479,7 +491,7 @@
             <h4>/api/license/lookup?key=...</h4>
             <p>Cổng tra cứu bản quyền công khai cho khách hàng kiểm tra tình trạng key.</p>
             <div class="code-preview-wrapper">
-              <pre><code>curl "https://your-domain.vercel.app/api/license/lookup?key=LTV-PRO-XXXX-XXXX-XXXX"</code></pre>
+              <pre><code>curl "https://ltvstudio-web-api.vercel.app/api/license/lookup?key=LTV-PRO-XXXX-XXXX-XXXX"</code></pre>
               <button class="btn-copy-code" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i></button>
             </div>
           </div>
@@ -601,22 +613,56 @@
     </div>
   </div>
 
-  <!-- MODAL: ADMIN SECRET LOGIN -->
+  <!-- MODAL: ADMIN LOGIN -->
   <div class="modal-overlay" id="adminAuthModal">
-    <div class="modal-box modal-sm">
+    <div class="modal-box modal-login-box">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-lock text-cyan"></i> Xác Thực Quản Trị Viên</h3>
+        <div class="login-modal-header-content">
+          <div class="login-icon-box">
+            <i class="fa-solid fa-shield-halved text-cyan"></i>
+          </div>
+          <div>
+            <h3>Đăng Nhập Quản Trị Viên</h3>
+            <p class="login-modal-sub">Bảo mật xác thực cấp cao • HMAC Token 256-bit</p>
+          </div>
+        </div>
         <button class="modal-close" id="btnCloseAuthModal">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Nhập mã bí mật quản trị (Admin Secret Key) để tiếp tục thao tác:</p>
+        <div id="adminLoginError" class="login-error-banner" style="display: none;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="adminLoginErrorText">Mật khẩu không chính xác</span>
+        </div>
+
         <div class="form-group">
-          <input type="password" id="adminSecretInput" placeholder="Nhập Admin Secret Key..." autofocus>
+          <label for="adminUsernameInput"><i class="fa-solid fa-user text-cyan"></i> Tài khoản:</label>
+          <input type="text" id="adminUsernameInput" value="admin" placeholder="Tài khoản quản trị..." autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="adminSecretInput"><i class="fa-solid fa-lock text-cyan"></i> Mật khẩu / Admin Secret Key:</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="adminSecretInput" placeholder="Nhập mật khẩu quản trị..." autocomplete="current-password" autofocus>
+            <button type="button" class="btn-toggle-eye" id="btnTogglePasswordEye" title="Hiện/ẩn mật khẩu">
+              <i class="fa-regular fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="login-options-row">
+          <label class="remember-label">
+            <input type="checkbox" id="checkRememberAdmin" checked>
+            <span>Ghi nhớ phiên làm việc (24h)</span>
+          </label>
+          <span class="security-chip"><i class="fa-solid fa-shield-halved"></i> Auto Lock 15m</span>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary w-100" id="btnSubmitAdminAuth">
-          <i class="fa-solid fa-shield-halved"></i> Đăng Nhập Quản Trị
+      <div class="modal-footer flex-column">
+        <button class="btn btn-primary w-100 btn-glow" id="btnSubmitAdminAuth">
+          <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống
+        </button>
+        <button class="btn btn-glass w-100 mt-2" id="btnCancelAdminAuth">
+          <i class="fa-solid fa-xmark"></i> Hủy Bỏ
         </button>
       </div>
     </div>

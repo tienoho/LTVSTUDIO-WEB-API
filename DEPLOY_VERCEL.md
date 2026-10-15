@@ -74,7 +74,7 @@ Dự án đã được tích hợp sẵn driver **Neon Serverless Driver (`@neon
    - Server sẽ tự động phát hiện `DATABASE_URL`, tự động tạo bảng và gắn huy hiệu **`Database: Neon Postgres (Cloud)`** trực tiếp trên Web Dashboard!
 
 ### Tính Năng Sao Lưu & Khôi Phục (Backup & Restore):
-- Ngay trên Web Admin Center (`https://your-domain.vercel.app/`):
+- Ngay trên Web Admin Center (`https://ltvstudio-web-api.vercel.app/`):
   * Bấm nút **"Sao Lưu JSON"** để tải file snapshot toàn bộ CSDL Neon về máy tính.
   * Bấm nút **"Khôi Phục JSON"** để nạp lại dữ liệu bất kỳ lúc nào nếu cần chuyển database mới.
 
@@ -83,12 +83,12 @@ Dự án đã được tích hợp sẵn driver **Neon Serverless Driver (`@neon
 ## 🔗 Các Đường Link Sau Khi Deploy
 
 - **Trang chủ Khách hàng (Landing & Tải App):**  
-  `https://your-domain.vercel.app/`
+  `https://ltvstudio-web-api.vercel.app/`
 - **Cổng Tra cứu Bản quyền Online:**  
-  `https://your-domain.vercel.app/` (chọn tab *Tra Cứu Bản Quyền*) hoặc `GET /api/license/lookup?key=...`
+  `https://ltvstudio-web-api.vercel.app/` (chọn tab *Tra Cứu Bản Quyền*) hoặc `GET /api/license/lookup?key=...`
 - **Trung tâm Quản trị Admin:**  
-  `https://your-domain.vercel.app/` (chọn tab *Quản Trị Hệ Thống*, mã secret mặc định: `ltvstudio_secret_admin_2026`)
+  `https://ltvstudio-web-api.vercel.app/` (chọn tab *Quản Trị Hệ Thống*, mã secret mặc định: `ltvstudio_secret_admin_2026`)
 - **API Check Version dành cho Ứng dụng Desktop:**  
-  `https://your-domain.vercel.app/api/transform/version`
+  `https://ltvstudio-web-api.vercel.app/api/transform/version`
 - **API Verify Key & Khóa HWID:**  
-  `https://your-domain.vercel.app/api/auth/verify`
+  `https://ltvstudio-web-api.vercel.app/api/auth/verify`

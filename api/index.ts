@@ -1,24 +1,27 @@
 /**
  * LTVStudio Serverless API & License Hub (TypeScript)
  * Handles Version Check, HWID License Verification, Admin CRUD, Rate Limiting & Audit Trail
+ * Hardened Authentication & Authorization Layer
  */
 
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import url from 'url';
 import * as neonDb from './db';
 import type { 
   License, 
   VersionConfig, 
   ActivationLog, 
   AdminStats, 
-  HealthResponse 
+  HealthResponse,
+  VerifyResponseBody
 } from '../types/index';
 
 // Configuration & Secrets
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'ltvstudio_secret_admin_2026';
+const AUTH_TOKEN_SECRET = process.env.AUTH_TOKEN_SECRET || (ADMIN_SECRET + '_ltv_signature_secret_2026');
+const AUTH_TOKEN_TTL_SECONDS = parseInt(process.env.AUTH_TOKEN_TTL_SECONDS || '86400', 10);
 const LOCAL_DATA_DIR = path.join(__dirname, '..', 'data');
 const TMP_DATA_DIR = '/tmp';
 
@@ -62,9 +65,9 @@ let memoryLicenses: License[] | null = null;
 let memoryVersion: VersionConfig | null = null;
 let memoryLogs: ActivationLog[] | null = null;
 
-// ── SECURITY HELPERS ─────────────────────────────────────────
+// ── SECURITY & RATE LIMITING HELPERS ─────────────────────────
 
-// 1. In-Memory Sliding-Window Rate Limiter
+// 1. In-Memory Sliding-Window General Rate Limiter (CWE-799)
 interface RateRecord {
   count: number;
   resetTime: number;
@@ -86,18 +89,112 @@ function checkRateLimit(ip: string, limit: number = 150, windowMs: number = 6000
   return { allowed: true, remaining: limit - record.count, retryAfter: 0 };
 }
 
-// Auto clean up stale rate limits
+// 2. License Verification Anti-Brute-Force Tracker (Per IP)
+interface VerifyFailRecord {
+  count: number;
+  resetTime: number;
+  lockedUntil: number;
+}
+const verifyFailMap = new Map<string, VerifyFailRecord>();
+const MAX_VERIFY_FAILS = 5;
+const VERIFY_FAIL_WINDOW_MS = 10 * 60 * 1000; // 10 minutes window
+const VERIFY_LOCKOUT_MS = 15 * 60 * 1000;    // 15 minutes lockout
+
+function checkVerifyLock(ip: string): { locked: boolean; retryAfter: number } {
+  const now = Date.now();
+  const rec = verifyFailMap.get(ip);
+  if (!rec) return { locked: false, retryAfter: 0 };
+  if (rec.lockedUntil > now) {
+    return { locked: true, retryAfter: Math.ceil((rec.lockedUntil - now) / 1000) };
+  }
+  if (now > rec.resetTime && rec.lockedUntil <= now) {
+    verifyFailMap.delete(ip);
+    return { locked: false, retryAfter: 0 };
+  }
+  return { locked: false, retryAfter: 0 };
+}
+
+function recordVerifyFailure(ip: string): void {
+  const now = Date.now();
+  let rec = verifyFailMap.get(ip);
+  if (!rec || (now > rec.resetTime && rec.lockedUntil <= now)) {
+    rec = { count: 1, resetTime: now + VERIFY_FAIL_WINDOW_MS, lockedUntil: 0 };
+    verifyFailMap.set(ip, rec);
+    return;
+  }
+  rec.count++;
+  if (rec.count >= MAX_VERIFY_FAILS) {
+    rec.lockedUntil = now + VERIFY_LOCKOUT_MS;
+    console.warn(`[SECURITY LOCKOUT] IP ${ip} exceeded ${MAX_VERIFY_FAILS} failed verify attempts. Locked for 15 minutes.`);
+  }
+}
+
+function resetVerifyFailure(ip: string): void {
+  verifyFailMap.delete(ip);
+}
+
+// 3. Admin Authentication Anti-Brute-Force Tracker (Per IP)
+interface AdminFailRecord {
+  count: number;
+  resetTime: number;
+  lockedUntil: number;
+}
+const adminFailMap = new Map<string, AdminFailRecord>();
+const MAX_ADMIN_FAILS = 5;
+const ADMIN_FAIL_WINDOW_MS = 15 * 60 * 1000;
+const ADMIN_LOCKOUT_MS = 15 * 60 * 1000;
+
+function checkAdminLock(ip: string): { locked: boolean; retryAfter: number } {
+  const now = Date.now();
+  const rec = adminFailMap.get(ip);
+  if (!rec) return { locked: false, retryAfter: 0 };
+  if (rec.lockedUntil > now) {
+    return { locked: true, retryAfter: Math.ceil((rec.lockedUntil - now) / 1000) };
+  }
+  if (now > rec.resetTime && rec.lockedUntil <= now) {
+    adminFailMap.delete(ip);
+    return { locked: false, retryAfter: 0 };
+  }
+  return { locked: false, retryAfter: 0 };
+}
+
+function recordAdminFailure(ip: string): void {
+  const now = Date.now();
+  let rec = adminFailMap.get(ip);
+  if (!rec || (now > rec.resetTime && rec.lockedUntil <= now)) {
+    rec = { count: 1, resetTime: now + ADMIN_FAIL_WINDOW_MS, lockedUntil: 0 };
+    adminFailMap.set(ip, rec);
+    return;
+  }
+  rec.count++;
+  if (rec.count >= MAX_ADMIN_FAILS) {
+    rec.lockedUntil = now + ADMIN_LOCKOUT_MS;
+    console.warn(`[SECURITY LOCKOUT] IP ${ip} exceeded ${MAX_ADMIN_FAILS} failed admin attempts. Locked for 15 minutes.`);
+  }
+}
+
+function resetAdminFailure(ip: string): void {
+  adminFailMap.delete(ip);
+}
+
+// Auto clean up stale maps
 if (typeof setInterval !== 'undefined') {
   const timer = setInterval(() => {
     const now = Date.now();
     for (const [ip, rec] of rateLimitMap.entries()) {
       if (now > rec.resetTime) rateLimitMap.delete(ip);
     }
+    for (const [ip, rec] of verifyFailMap.entries()) {
+      if (now > rec.resetTime && rec.lockedUntil <= now) verifyFailMap.delete(ip);
+    }
+    for (const [ip, rec] of adminFailMap.entries()) {
+      if (now > rec.resetTime && rec.lockedUntil <= now) adminFailMap.delete(ip);
+    }
   }, 120000);
   if (timer.unref) timer.unref();
 }
 
-// 2. Timing-Safe String Comparison (CWE-208)
+// 4. Timing-Safe String Comparison (CWE-208)
 export function safeCompare(a: string, b: string): boolean {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   const bufA = Buffer.from(a, 'utf8');
@@ -107,6 +204,79 @@ export function safeCompare(a: string, b: string): boolean {
     return false;
   }
   return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// 5. HWID Sanitization & Validation (Anti-Trivial / Anti-Spoof)
+export function validateHwid(hwid: unknown): { valid: boolean; cleanHwid: string; reason?: string } {
+  if (typeof hwid !== 'string') {
+    return { valid: false, cleanHwid: '', reason: 'Mã định danh thiết bị (HWID) không hợp lệ.' };
+  }
+  const clean = hwid.trim();
+  if (clean.length < 8) {
+    return { valid: false, cleanHwid: clean, reason: 'Mã HWID quá ngắn (tối thiểu 8 ký tự bảo mật).' };
+  }
+  if (clean.length > 128) {
+    return { valid: false, cleanHwid: clean.slice(0, 128), reason: 'Mã HWID vượt quá độ dài tối đa 128 ký tự.' };
+  }
+
+  const lower = clean.toLowerCase();
+  const dummyValues = [
+    '12345678', '00000000', '11111111', '88888888', '99999999',
+    'test', 'default', 'null', 'undefined', 'unknown', 'none',
+    'localhost', '00000000-0000-0000-0000-000000000000'
+  ];
+  if (dummyValues.includes(lower)) {
+    return { valid: false, cleanHwid: clean, reason: 'Mã HWID không an toàn hoặc là giá trị mẫu.' };
+  }
+
+  if (!/^[a-zA-Z0-9_\-:\.]{8,128}$/.test(clean)) {
+    return { valid: false, cleanHwid: clean, reason: 'Mã HWID chứa ký tự không hợp lệ.' };
+  }
+
+  return { valid: true, cleanHwid: clean };
+}
+
+// 6. Cryptographic Tamper-Proof Token Signer (HMAC-SHA256)
+export function generateLicenseSignature(
+  key: string,
+  machineId: string,
+  expiresAt: string | null,
+  timestamp: number,
+  nonce: string
+): string {
+  const payload = `${key}:${machineId}:${expiresAt || 'NULL'}:${timestamp}:${nonce}`;
+  return crypto.createHmac('sha256', AUTH_TOKEN_SECRET).update(payload).digest('hex');
+}
+
+// 7. Admin Session Token Generator & Validator (HMAC-SHA256)
+export function createAdminSessionToken(ttlSeconds: number = AUTH_TOKEN_TTL_SECONDS): string {
+  const iat = Math.floor(Date.now() / 1000);
+  const exp = iat + ttlSeconds;
+  const payloadStr = JSON.stringify({ role: 'admin', iat, exp });
+  const b64Payload = Buffer.from(payloadStr, 'utf8').toString('base64url');
+  const signature = crypto.createHmac('sha256', AUTH_TOKEN_SECRET).update(b64Payload).digest('base64url');
+  return `${b64Payload}.${signature}`;
+}
+
+export function verifyAdminSessionToken(token: string): boolean {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+  const [b64Payload, sig] = parts;
+  const expectedSig = crypto.createHmac('sha256', AUTH_TOKEN_SECRET).update(b64Payload).digest('base64url');
+  if (!safeCompare(sig, expectedSig)) return false;
+  try {
+    const jsonStr = Buffer.from(b64Payload, 'base64url').toString('utf8');
+    const parsed = JSON.parse(jsonStr);
+    if (!parsed || parsed.role !== 'admin') return false;
+    const now = Math.floor(Date.now() / 1000);
+    if (typeof parsed.exp === 'number' && parsed.exp < now) {
+      return false; // Token expired
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ── FALLBACK STORAGE (FILE / TMP / MEMORY) ────────────────────
@@ -292,9 +462,11 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
     await neonDb.initDb(DEFAULT_LICENSES, DEFAULT_VERSION);
   }
 
-  const parsedUrl = url.parse(req.url || '/', true);
+  const host = req.headers.host || 'localhost';
+  const protocol = (req.headers['x-forwarded-proto'] as string) || 'http';
+  const parsedUrl = new URL(req.url || '/', `${protocol}://${host}`);
   const pathname = (parsedUrl.pathname || '/').replace(/^\/api\/index\.js/, '/api');
-  const query = parsedUrl.query;
+  const query: Record<string, string> = Object.fromEntries(parsedUrl.searchParams.entries());
 
   const sendJson = (status: number, data: any) => {
     res.statusCode = status;
@@ -345,14 +517,59 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
     }
   };
 
-  // 6. Timing-Safe Admin Authentication
+  // 6. Timing-Safe Admin Authentication (CWE-208, CWE-598, CWE-307)
+  // Headers ONLY: x-admin-key or Authorization: Bearer <token-or-secret>
+  // Strictly disallows query.adminKey to prevent credential exposure in access logs and URLs.
   const isAuthorizedAdmin = (): boolean => {
-    let provided = (req.headers['x-admin-key'] as string) || (query.adminKey as string) || '';
-    const authHeader = (req.headers['authorization'] as string) || '';
-    if (authHeader.startsWith('Bearer ')) {
-      provided = authHeader.substring(7).trim();
+    const adminLock = checkAdminLock(clientIp);
+    if (adminLock.locked) {
+      return false;
     }
-    return safeCompare(provided, ADMIN_SECRET);
+
+    const headerKey = ((req.headers['x-admin-key'] as string) || '').trim();
+    const authHeader = ((req.headers['authorization'] as string) || '').trim();
+
+    let authorized = false;
+
+    // 1. Direct secret in header 'x-admin-key'
+    if (headerKey && safeCompare(headerKey, ADMIN_SECRET)) {
+      authorized = true;
+    }
+
+    // 2. Bearer token in 'Authorization: Bearer <...>'
+    if (!authorized && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7).trim();
+      if (safeCompare(token, ADMIN_SECRET)) {
+        authorized = true;
+      } else if (verifyAdminSessionToken(token)) {
+        authorized = true;
+      }
+    }
+
+    if (authorized) {
+      resetAdminFailure(clientIp);
+      return true;
+    } else {
+      if (headerKey || authHeader) {
+        recordAdminFailure(clientIp);
+      }
+      return false;
+    }
+  };
+
+  const sendAdminUnauthorized = () => {
+    const adminLock = checkAdminLock(clientIp);
+    if (adminLock.locked) {
+      return sendJson(403, {
+        error: 'Forbidden',
+        message: `Địa chỉ IP đã bị tạm khóa 15 phút do nhập sai mật khẩu Admin quá 5 lần liên tiếp. Vui lòng thử lại sau ${adminLock.retryAfter} giây.`,
+        retryAfter: adminLock.retryAfter
+      });
+    }
+    return sendJson(401, {
+      error: 'Unauthorized',
+      message: 'Yêu cầu không hợp lệ. Vui lòng cung cấp header x-admin-key hoặc Authorization: Bearer <token> chính xác.'
+    });
   };
 
   try {
@@ -403,9 +620,69 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       return sendJson(200, healthRes);
     }
 
+    // ── 0.0 ADMIN LOGIN & SESSION TOKEN ISSUANCE ──────────────
+    if (pathname === '/api/admin/login' && req.method === 'POST') {
+      const adminLock = checkAdminLock(clientIp);
+      if (adminLock.locked) {
+        return sendJson(403, {
+          error: 'Forbidden',
+          message: `Địa chỉ IP đã bị tạm khóa do thử sai mật khẩu Admin quá 5 lần. Vui lòng thử lại sau ${adminLock.retryAfter} giây.`,
+          retryAfter: adminLock.retryAfter
+        });
+      }
+
+      const body = await getBody(16384);
+      const secret = (body.secret || body.password || body.adminKey || body.key || '').trim();
+      const username = (body.username || 'admin').trim();
+
+      if (!secret || !safeCompare(secret, ADMIN_SECRET)) {
+        recordAdminFailure(clientIp);
+        return sendJson(401, {
+          error: 'Unauthorized',
+          message: 'Mã Quản trị viên hoặc mật khẩu không chính xác!'
+        });
+      }
+
+      resetAdminFailure(clientIp);
+      const token = createAdminSessionToken(AUTH_TOKEN_TTL_SECONDS);
+      return sendJson(200, {
+        success: true,
+        token: token,
+        expiresIn: AUTH_TOKEN_TTL_SECONDS,
+        user: {
+          username: username || 'admin',
+          role: 'SuperAdmin',
+          loginAt: new Date().toISOString()
+        },
+        message: 'Đăng nhập Quản trị viên thành công!'
+      });
+    }
+
+    // ── 0.01 ADMIN SESSION VERIFY (Ping Auth Check) ────────────
+    if (pathname === '/api/admin/verify-session' && req.method === 'GET') {
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      return sendJson(200, {
+        success: true,
+        authenticated: true,
+        user: {
+          username: 'admin',
+          role: 'SuperAdmin'
+        },
+        message: 'Phiên quản trị viên hợp lệ.'
+      });
+    }
+
+    // ── 0.02 ADMIN LOGOUT ──────────────────────────────────────
+    if (pathname === '/api/admin/logout' && req.method === 'POST') {
+      return sendJson(200, {
+        success: true,
+        message: 'Đã đăng xuất khỏi tài khoản Quản trị viên thành công!'
+      });
+    }
+
     // ── 0.1 ADMIN: ACTIVATION AUDIT LOGS ───────────────────────
     if (pathname === '/api/admin/licenses/logs' && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized: Sai mã admin secret' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const searchKey = ((query.key as string) || '').trim();
       const limit = parseInt(query.limit as string) || 50;
@@ -436,34 +713,84 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       });
     }
 
-    // ── 2. LICENSE VALIDATION & HWID BINDING ───────────────────
+    // ── 2. LICENSE VALIDATION & HWID BINDING (HARDENED) ───────
     if (pathname === '/api/auth/verify' && req.method === 'POST') {
-      const body = await getBody(65536);
-      const licenseKey = (body.licenseKey || body.key || '').trim().toUpperCase().slice(0, 64);
-      const machineId = (body.machineId || body.hwid || '').trim().slice(0, 128);
       const userAgent = ((req.headers['user-agent'] as string) || '').slice(0, 200);
 
-      if (!licenseKey) {
-        await recordActivationLog({ licenseKey: 'EMPTY', machineId, ipAddress: clientIp, status: 'INVALID', message: 'Chưa nhập mã license', userAgent });
+      // 1. Check Anti-Brute-Force Verification Lockout
+      const vLock = checkVerifyLock(clientIp);
+      if (vLock.locked) {
+        await recordActivationLog({
+          licenseKey: 'BRUTE_FORCE_BLOCKED',
+          machineId: 'BLOCKED',
+          ipAddress: clientIp,
+          status: 'BLOCKED_BRUTE_FORCE',
+          message: `IP bị khóa do thử sai quá 5 lần (Retry after ${vLock.retryAfter}s)`,
+          userAgent
+        });
+        return sendJson(429, {
+          isValid: false,
+          licenseType: 'Bị tạm khóa',
+          expiresAt: null,
+          machineId: null,
+          message: `Bạn đã thử sai mã bản quyền quá 5 lần. Địa chỉ IP tạm thời bị khóa trong ${vLock.retryAfter} giây để bảo vệ hệ thống.`,
+          retryAfter: vLock.retryAfter
+        });
+      }
+
+      const body = await getBody(65536);
+      const rawLicenseKey = (body.licenseKey || body.key || '').trim().toUpperCase().slice(0, 64);
+      const rawMachineId = (body.machineId || body.hwid || '').trim().slice(0, 128);
+
+      // Validate presence of license key
+      if (!rawLicenseKey) {
+        recordVerifyFailure(clientIp);
+        await recordActivationLog({ licenseKey: 'EMPTY', machineId: rawMachineId, ipAddress: clientIp, status: 'INVALID', message: 'Chưa nhập mã license', userAgent });
         return sendJson(200, {
           isValid: false,
           licenseType: 'Chưa kích hoạt',
           expiresAt: null,
-          machineId: machineId,
+          machineId: rawMachineId,
           message: 'Vui lòng nhập mã bản quyền (License Key).'
         });
       }
 
+      // Validate HWID security format if supplied
+      let machineId = rawMachineId;
+      if (machineId) {
+        const hwidValidation = validateHwid(machineId);
+        if (!hwidValidation.valid) {
+          recordVerifyFailure(clientIp);
+          await recordActivationLog({
+            licenseKey: rawLicenseKey,
+            machineId: machineId,
+            ipAddress: clientIp,
+            status: 'INVALID_HWID',
+            message: hwidValidation.reason || 'HWID không an toàn',
+            userAgent
+          });
+          return sendJson(200, {
+            isValid: false,
+            licenseType: 'Không hợp lệ',
+            expiresAt: null,
+            machineId: machineId,
+            message: hwidValidation.reason || 'Mã HWID thiết bị không an toàn.'
+          });
+        }
+        machineId = hwidValidation.cleanHwid;
+      }
+
       let found: License | null = null;
       if (useNeon) {
-        found = await neonDb.getLicenseByKey(licenseKey);
+        found = await neonDb.getLicenseByKey(rawLicenseKey);
       } else {
         const licenses = await getFallbackLicenses();
-        found = licenses.find(l => l.key.toUpperCase() === licenseKey) || null;
+        found = licenses.find(l => l.key.toUpperCase() === rawLicenseKey) || null;
       }
 
       if (!found) {
-        await recordActivationLog({ licenseKey, machineId, ipAddress: clientIp, status: 'NOT_FOUND', message: 'Mã không tồn tại', userAgent });
+        recordVerifyFailure(clientIp);
+        await recordActivationLog({ licenseKey: rawLicenseKey, machineId, ipAddress: clientIp, status: 'NOT_FOUND', message: 'Mã không tồn tại', userAgent });
         return sendJson(200, {
           isValid: false,
           licenseType: 'Không xác định',
@@ -475,7 +802,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
       // Check Revoked
       if (found.status === 'REVOKED' || found.status === 'BANNED') {
-        await recordActivationLog({ licenseKey, machineId, ipAddress: clientIp, status: 'REVOKED', message: 'Mã bản quyền đã bị khóa', userAgent });
+        recordVerifyFailure(clientIp);
+        await recordActivationLog({ licenseKey: rawLicenseKey, machineId, ipAddress: clientIp, status: 'REVOKED', message: 'Mã bản quyền đã bị khóa', userAgent });
         return sendJson(200, {
           isValid: false,
           licenseType: found.type,
@@ -491,15 +819,16 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
         if (expDate < new Date()) {
           found.status = 'EXPIRED';
           if (useNeon) {
-            await neonDb.updateLicense(licenseKey, { status: 'EXPIRED' });
+            await neonDb.updateLicense(rawLicenseKey, { status: 'EXPIRED' });
           } else {
             const licenses = await getFallbackLicenses();
-            const item = licenses.find(l => l.key.toUpperCase() === licenseKey);
+            const item = licenses.find(l => l.key.toUpperCase() === rawLicenseKey);
             if (item) item.status = 'EXPIRED';
             await saveFallbackLicenses(licenses);
           }
 
-          await recordActivationLog({ licenseKey, machineId, ipAddress: clientIp, status: 'EXPIRED', message: 'Mã bản quyền đã hết hạn', userAgent });
+          recordVerifyFailure(clientIp);
+          await recordActivationLog({ licenseKey: rawLicenseKey, machineId, ipAddress: clientIp, status: 'EXPIRED', message: 'Mã bản quyền đã hết hạn', userAgent });
           return sendJson(200, {
             isValid: false,
             licenseType: found.type,
@@ -521,7 +850,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
           updates.status = 'ACTIVE';
           updates.activatedAt = found.activatedAt;
         } else if (found.machineId !== machineId) {
-          await recordActivationLog({ licenseKey, machineId, ipAddress: clientIp, status: 'WRONG_HWID', message: `Thiết bị không khớp (Đang gắn: ${found.machineId})`, userAgent });
+          recordVerifyFailure(clientIp);
+          await recordActivationLog({ licenseKey: rawLicenseKey, machineId, ipAddress: clientIp, status: 'WRONG_HWID', message: `Thiết bị không khớp (Đang gắn: ${found.machineId})`, userAgent });
           return sendJson(200, {
             isValid: false,
             licenseType: found.type,
@@ -533,22 +863,43 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       }
 
       if (useNeon) {
-        await neonDb.updateLicense(licenseKey, updates);
+        await neonDb.updateLicense(rawLicenseKey, updates);
       } else {
         const licenses = await getFallbackLicenses();
-        const item = licenses.find(l => l.key.toUpperCase() === licenseKey);
+        const item = licenses.find(l => l.key.toUpperCase() === rawLicenseKey);
         if (item) Object.assign(item, updates);
         await saveFallbackLicenses(licenses);
       }
 
-      await recordActivationLog({ licenseKey, machineId: found.machineId || machineId, ipAddress: clientIp, status: 'SUCCESS', message: 'Xác thực bản quyền thành công', userAgent });
-      return sendJson(200, {
+      // Success: Reset failure count for this IP
+      resetVerifyFailure(clientIp);
+
+      // Generate Tamper-Proof Cryptographic Signature & Anti-Replay Nonce
+      const timestamp = Date.now();
+      const nonce = crypto.randomBytes(16).toString('hex');
+      const token = generateLicenseSignature(rawLicenseKey, found.machineId || machineId, found.expiresAt, timestamp, nonce);
+
+      await recordActivationLog({
+        licenseKey: rawLicenseKey,
+        machineId: found.machineId || machineId,
+        ipAddress: clientIp,
+        status: 'SUCCESS',
+        message: 'Xác thực bản quyền thành công (Signed Token)',
+        userAgent
+      });
+
+      const responsePayload: VerifyResponseBody = {
         isValid: true,
         licenseType: found.type || 'LTVStudio Pro Lifetime',
         expiresAt: found.expiresAt === 'LIFETIME' ? 'Không giới hạn (Lifetime)' : found.expiresAt,
         machineId: found.machineId || machineId,
-        message: '✓ Bản quyền hợp lệ và đã kích hoạt thành công!'
-      });
+        message: '✓ Bản quyền hợp lệ và đã kích hoạt thành công!',
+        token: token,
+        timestamp: timestamp,
+        nonce: nonce
+      };
+
+      return sendJson(200, responsePayload);
     }
 
     // ── 3. PUBLIC LICENSE LOOKUP ───────────────────────────────
@@ -589,7 +940,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 4. ADMIN DASHBOARD STATS ───────────────────────────────
     if (pathname === '/api/admin/stats' && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized: Sai mã admin secret' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       if (useNeon) {
         const stats = await neonDb.getStats();
@@ -619,7 +970,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 5. ADMIN LIST LICENSES ─────────────────────────────────
     if (pathname === '/api/admin/licenses' && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const q = ((query.search as string) || '').trim().slice(0, 100);
       let status = ((query.status as string) || 'ALL').toUpperCase();
@@ -657,7 +1008,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 6. ADMIN CREATE KEY / BULK GENERATE ────────────────────
     if (pathname === '/api/admin/licenses/create' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const body = await getBody(65536);
       let plan = (body.plan || 'LIFETIME').toUpperCase();
@@ -713,7 +1064,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 7. ADMIN RESET HWID ────────────────────────────────────
     if (pathname === '/api/admin/licenses/reset-hwid' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const body = await getBody(65536);
       const key = (body.key || '').trim().toUpperCase();
@@ -732,7 +1083,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 8. ADMIN TOGGLE STATUS ─────────────────────────────────
     if (pathname === '/api/admin/licenses/toggle-status' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const body = await getBody(65536);
       const key = (body.key || '').trim().toUpperCase();
@@ -757,7 +1108,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 9. ADMIN EXTEND LICENSE ────────────────────────────────
     if (pathname === '/api/admin/licenses/extend' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const body = await getBody(65536);
       const key = (body.key || '').trim().toUpperCase();
@@ -800,7 +1151,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 10. ADMIN DELETE LICENSE ───────────────────────────────
     if (pathname === '/api/admin/licenses/delete' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const body = await getBody(65536);
       const key = (body.key || '').trim().toUpperCase();
@@ -818,7 +1169,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 11. ADMIN GET / UPDATE VERSION CONFIG ──────────────────
     if (pathname === '/api/admin/version') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       if (req.method === 'GET') {
         const ver = useNeon ? await neonDb.getVersionConfig() : await getFallbackVersion();
@@ -849,7 +1200,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 12. ADMIN BACKUP DATABASE ──────────────────────────────
     if (pathname === '/api/admin/backup' && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const licenses = useNeon ? await neonDb.getLicenses() : await getFallbackLicenses();
       const version = useNeon ? await neonDb.getVersionConfig() : await getFallbackVersion();
@@ -864,7 +1215,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 13. ADMIN RESTORE DATABASE ─────────────────────────────
     if (pathname === '/api/admin/restore' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
 
       const body = await getBody(5242880);
 

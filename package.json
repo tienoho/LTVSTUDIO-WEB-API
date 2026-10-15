@@ -2,7 +2,6 @@
   "name": "ltvstudio-web-api",
   "version": "1.0.0",
   "description": "LTVStudio License Verification & Version Update Management Web API (TypeScript)",
-  "main": "server.ts",
   "scripts": {
     "start": "tsx server.ts",
     "dev": "tsx watch server.ts",

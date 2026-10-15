@@ -6,7 +6,6 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import apiHandler from './api/index';
 
 const PORT = Number(process.env.PORT) || 8080;
@@ -24,7 +23,8 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
-  const parsedUrl = url.parse(req.url || '/', true);
+  const host = req.headers.host || `localhost:${PORT}`;
+  const parsedUrl = new URL(req.url || '/', `http://${host}`);
   const pathname = parsedUrl.pathname || '/';
 
   // 1. API Routes -> Handled by Serverless api/index.ts
