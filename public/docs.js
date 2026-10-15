@@ -133,8 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch('/api/admin/login', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, secret })
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-admin-key': secret
+          },
+          body: JSON.stringify({ username, secret, password: secret, adminKey: secret })
         });
         const data = await res.json();
 
