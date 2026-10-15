@@ -4,14 +4,14 @@
  */
 
 import http from 'http';
-import * as neonDb from './db';
-import { HttpContext } from './http/context';
-import { checkRateLimit } from './security/rate-limiter';
-import { routeRequest } from './http/router';
-import { DEFAULT_LICENSES, DEFAULT_VERSION, DEFAULT_USERS } from './config/constants';
+import * as neonDb from '../lib/db';
+import { HttpContext } from '../lib/http/context';
+import { checkRateLimit } from '../lib/security/rate-limiter';
+import { routeRequest } from '../lib/http/router';
+import { DEFAULT_LICENSES, DEFAULT_VERSION, DEFAULT_USERS } from '../lib/config/constants';
 
 // Re-export Security & Auth functions for backwards compatibility with tests and external consumers
-export { safeCompare, validateHwid, generateLicenseSignature } from './security/crypto';
+export { safeCompare, validateHwid, generateLicenseSignature } from '../lib/security/crypto';
 export {
   ROLE_PERMISSIONS,
   isSecretValid,
@@ -20,7 +20,7 @@ export {
   createAdminSessionToken,
   parseAdminSessionToken,
   verifyAdminSessionToken
-} from './security/auth';
+} from '../lib/security/auth';
 
 // Non-blocking asynchronous Database Schema initialization (Neon Postgres)
 if (neonDb.isNeonConfigured()) {
