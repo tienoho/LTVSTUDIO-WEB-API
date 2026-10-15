@@ -58,3 +58,23 @@ export function generateLicenseSignature(
   const payload = `${key}:${machineId}:${expiresAt || 'NULL'}:${timestamp}:${nonce}`;
   return crypto.createHmac('sha256', AUTH_TOKEN_SECRET).update(payload).digest('hex');
 }
+
+// 4. Password Hashing & Verification (Salted SHA-256 with Timing-Safe Protection)
+export function hashPassword(password: string, customSalt?: string): string {
+  const salt = customSalt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.createHash('sha256').update(salt + password).digest('hex');
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string): boolean {
+  if (!password || !storedHash || typeof password !== 'string' || typeof storedHash !== 'string') return false;
+  if (!storedHash.includes(':')) return false;
+  try {
+    const [salt, expectedHash] = storedHash.split(':');
+    if (!salt || !expectedHash) return false;
+    const computed = crypto.createHash('sha256').update(salt + password).digest('hex');
+    return safeCompare(computed, expectedHash);
+  } catch {
+    return false;
+  }
+}

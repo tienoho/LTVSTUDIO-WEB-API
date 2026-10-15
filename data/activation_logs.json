@@ -1,5 +1,105 @@
 [
   {
+    "id": 1792071528040,
+    "licenseKey": "LTV-TRIL-65A5A3-F8616C-A8ADFA",
+    "machineId": "HACKER-DIFFERENT-MACHINE-999",
+    "ipAddress": "::1",
+    "status": "REVOKED",
+    "message": "Mã bản quyền đã bị khóa",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:38:47.944Z"
+  },
+  {
+    "id": 1792071527982,
+    "licenseKey": "LTV-TRIL-65A5A3-F8616C-A8ADFA",
+    "machineId": "HACKER-DIFFERENT-MACHINE-999",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:38:47.937Z"
+  },
+  {
+    "id": 1792071528383,
+    "licenseKey": "LTV-TRIL-65A5A3-F8616C-A8ADFA",
+    "machineId": "HACKER-DIFFERENT-MACHINE-999",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: TEST-HWID-PC1-B892AC771)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:38:47.924Z"
+  },
+  {
+    "id": 1792071528426,
+    "licenseKey": "LTV-TRIL-65A5A3-F8616C-A8ADFA",
+    "machineId": "TEST-HWID-PC1-B892AC771",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:38:47.921Z"
+  },
+  {
+    "id": 1792071528468,
+    "licenseKey": "LTV-TRIL-65A5A3-F8616C-A8ADFA",
+    "machineId": "TEST-HWID-PC1-B892AC771",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:38:47.913Z"
+  },
+  {
+    "id": 1792071239700,
+    "licenseKey": "LTV-TRIL-B414F8-4E5246-1D41B2",
+    "machineId": "HACKER-DIFFERENT-MACHINE-999",
+    "ipAddress": "::1",
+    "status": "REVOKED",
+    "message": "Mã bản quyền đã bị khóa",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:33:59.154Z"
+  },
+  {
+    "id": 1792071240005,
+    "licenseKey": "LTV-TRIL-B414F8-4E5246-1D41B2",
+    "machineId": "HACKER-DIFFERENT-MACHINE-999",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:33:59.147Z"
+  },
+  {
+    "id": 1792071240015,
+    "licenseKey": "LTV-TRIL-B414F8-4E5246-1D41B2",
+    "machineId": "HACKER-DIFFERENT-MACHINE-999",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: TEST-HWID-PC1-B892AC771)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:33:59.137Z"
+  },
+  {
+    "id": 1792071240104,
+    "licenseKey": "LTV-TRIL-B414F8-4E5246-1D41B2",
+    "machineId": "TEST-HWID-PC1-B892AC771",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:33:59.134Z"
+  },
+  {
+    "id": 1792071239814,
+    "licenseKey": "LTV-TRIL-B414F8-4E5246-1D41B2",
+    "machineId": "TEST-HWID-PC1-B892AC771",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T13:33:59.129Z"
+  },
+  {
     "id": 1792070588093,
     "licenseKey": "BRUTE_FORCE_BLOCKED",
     "machineId": "BLOCKED",
