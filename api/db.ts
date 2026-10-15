@@ -5,13 +5,41 @@
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import type { 
   License, 
   VersionConfig, 
   ActivationLog, 
   AdminStats, 
-  DbHealth 
+  DbHealth,
+  User 
 } from '../types/index';
+
+// ── PASSWORD HASHING (SHA-256 WITH SALT) ───────────────────
+export function hashPassword(password: string, customSalt?: string): string {
+  const salt = customSalt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.createHash('sha256').update(salt + password).digest('hex');
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string): boolean {
+  if (!password || !storedHash || typeof password !== 'string' || typeof storedHash !== 'string') return false;
+  if (!storedHash.includes(':')) return false;
+  try {
+    const [salt, expectedHash] = storedHash.split(':');
+    if (!salt || !expectedHash) return false;
+    const computed = crypto.createHash('sha256').update(salt + password).digest('hex');
+    const bufComputed = Buffer.from(computed, 'utf8');
+    const bufExpected = Buffer.from(expectedHash, 'utf8');
+    if (bufComputed.length !== bufExpected.length) {
+      crypto.timingSafeEqual(bufComputed, bufComputed);
+      return false;
+    }
+    return crypto.timingSafeEqual(bufComputed, bufExpected);
+  } catch {
+    return false;
+  }
+}
 
 // Dynamic Connection string from environment variables
 export function getDatabaseUrl(): string {
@@ -91,8 +119,28 @@ export function mapLicenseRow(row: any): License | null {
   };
 }
 
+export function mapUserRow(row: any): User | null {
+  if (!row) return null;
+  return {
+    id: row.id,
+    username: row.username,
+    passwordHash: row.password_hash,
+    fullName: row.full_name || '',
+    email: row.email || '',
+    role: row.role || 'Support',
+    status: row.status || 'ACTIVE',
+    lastLoginAt: row.last_login_at ? new Date(row.last_login_at).toISOString() : null,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString()
+  };
+}
+
 // Initialize Database Schema & Seed Data
-export async function initDb(seedLicenses: License[] = [], seedVersion: VersionConfig | null = null): Promise<boolean> {
+export async function initDb(
+  seedLicenses: License[] = [], 
+  seedVersion: VersionConfig | null = null,
+  seedUsers: User[] = []
+): Promise<boolean> {
   const sql = getClient();
   if (!sql) return false;
   if (isInitialized) return true;
@@ -147,7 +195,25 @@ export async function initDb(seedLicenses: License[] = [], seedVersion: VersionC
     await sql`CREATE INDEX IF NOT EXISTS idx_logs_key ON activation_logs(license_key);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_logs_created_at ON activation_logs(created_at);`;
 
-    // 4. Seed licenses if empty
+    // 4. Create table users (Role-Based Admin Accounts)
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(64) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        full_name VARCHAR(128) DEFAULT '',
+        email VARCHAR(128) DEFAULT '',
+        role VARCHAR(32) NOT NULL DEFAULT 'Support',
+        status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+        last_login_at TIMESTAMPTZ DEFAULT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);`;
+
+    // 5. Seed licenses if empty
     const countRes = await sql`SELECT COUNT(*)::int AS count FROM licenses;`;
     const count = countRes[0]?.count || 0;
 
@@ -163,7 +229,7 @@ export async function initDb(seedLicenses: License[] = [], seedVersion: VersionC
       }
     }
 
-    // 5. Seed version_config if empty
+    // 6. Seed version_config if empty
     const verRes = await sql`SELECT COUNT(*)::int AS count FROM version_config;`;
     if ((verRes[0]?.count || 0) === 0 && seedVersion) {
       await sql`
@@ -175,8 +241,23 @@ export async function initDb(seedLicenses: License[] = [], seedVersion: VersionC
       `;
     }
 
+    // 7. Seed users if empty
+    const userCountRes = await sql`SELECT COUNT(*)::int AS count FROM users;`;
+    const userCount = userCountRes[0]?.count || 0;
+    if (userCount === 0 && Array.isArray(seedUsers) && seedUsers.length > 0) {
+      console.log(`[Neon Postgres] Seeding ${seedUsers.length} admin users into database...`);
+      for (const u of seedUsers) {
+        await sql`
+          INSERT INTO users (username, password_hash, full_name, email, role, status, created_at, updated_at)
+          VALUES (${u.username}, ${u.passwordHash}, ${u.fullName || ''}, ${u.email || ''}, 
+                  ${u.role || 'Support'}, ${u.status || 'ACTIVE'}, NOW(), NOW())
+          ON CONFLICT (username) DO NOTHING;
+        `;
+      }
+    }
+
     isInitialized = true;
-    console.log('[Neon Postgres] Connected and schema initialized successfully!');
+    console.log('[Neon Postgres] Connected and schema (licenses, version, logs, users) initialized successfully!');
     return true;
   } catch (err: any) {
     console.error('[Neon Postgres] Initialization error:', err.message);
@@ -500,3 +581,120 @@ export async function checkDbHealth(): Promise<DbHealth> {
     return { connected: false, driver: 'neon_postgres', error: err.message, latencyMs: Date.now() - start };
   }
 }
+
+// ── USER MANAGEMENT (RBAC MULTI-USER) ───────────────────────
+
+export async function getAllDbUsers(): Promise<User[]> {
+  const sql = getClient();
+  if (!sql) return [];
+  try {
+    const rows = await sql`SELECT * FROM users ORDER BY id ASC;`;
+    return rows.map((r: any) => mapUserRow(r)).filter((u: any): u is User => u !== null);
+  } catch (err: any) {
+    console.error('[Neon Postgres] getAllDbUsers error:', err.message);
+    return [];
+  }
+}
+
+export async function getDbUserByUsername(username: string): Promise<User | null> {
+  const sql = getClient();
+  if (!sql || !username) return null;
+  try {
+    const rows = await sql`SELECT * FROM users WHERE LOWER(username) = LOWER(${username.trim()}) LIMIT 1;`;
+    if (!rows || rows.length === 0) return null;
+    return mapUserRow(rows[0]);
+  } catch (err: any) {
+    console.error('[Neon Postgres] getDbUserByUsername error:', err.message);
+    return null;
+  }
+}
+
+export async function createDbUser(user: User): Promise<boolean> {
+  const sql = getClient();
+  if (!sql) return false;
+  try {
+    await sql`
+      INSERT INTO users (username, password_hash, full_name, email, role, status, created_at, updated_at)
+      VALUES (${user.username.trim().toLowerCase()}, ${user.passwordHash}, ${user.fullName || ''}, 
+              ${user.email || ''}, ${user.role || 'Support'}, ${user.status || 'ACTIVE'}, NOW(), NOW());
+    `;
+    return true;
+  } catch (err: any) {
+    console.error('[Neon Postgres] createDbUser error:', err.message);
+    return false;
+  }
+}
+
+export async function updateDbUser(username: string, updates: Partial<User>): Promise<boolean> {
+  const sql = getClient();
+  if (!sql || !username) return false;
+  try {
+    const existing = await getDbUserByUsername(username);
+    if (!existing) return false;
+
+    const newFullName = updates.fullName !== undefined ? updates.fullName : existing.fullName;
+    const newEmail = updates.email !== undefined ? updates.email : existing.email;
+    const newRole = updates.role !== undefined ? updates.role : existing.role;
+    const newStatus = updates.status !== undefined ? updates.status : existing.status;
+
+    await sql`
+      UPDATE users 
+      SET full_name = ${newFullName || ''},
+          email = ${newEmail || ''},
+          role = ${newRole || 'Support'},
+          status = ${newStatus || 'ACTIVE'},
+          updated_at = NOW()
+      WHERE LOWER(username) = LOWER(${username.trim()});
+    `;
+    return true;
+  } catch (err: any) {
+    console.error('[Neon Postgres] updateDbUser error:', err.message);
+    return false;
+  }
+}
+
+export async function updateDbUserPassword(username: string, newPasswordHash: string): Promise<boolean> {
+  const sql = getClient();
+  if (!sql || !username || !newPasswordHash) return false;
+  try {
+    await sql`
+      UPDATE users 
+      SET password_hash = ${newPasswordHash},
+          updated_at = NOW()
+      WHERE LOWER(username) = LOWER(${username.trim()});
+    `;
+    return true;
+  } catch (err: any) {
+    console.error('[Neon Postgres] updateDbUserPassword error:', err.message);
+    return false;
+  }
+}
+
+export async function updateDbUserLastLogin(username: string): Promise<boolean> {
+  const sql = getClient();
+  if (!sql || !username) return false;
+  try {
+    await sql`
+      UPDATE users 
+      SET last_login_at = NOW()
+      WHERE LOWER(username) = LOWER(${username.trim()});
+    `;
+    return true;
+  } catch (err: any) {
+    console.error('[Neon Postgres] updateDbUserLastLogin error:', err.message);
+    return false;
+  }
+}
+
+export async function deleteDbUser(username: string): Promise<boolean> {
+  const sql = getClient();
+  if (!sql || !username) return false;
+  try {
+    await sql`DELETE FROM users WHERE LOWER(username) = LOWER(${username.trim()});`;
+    return true;
+  } catch (err: any) {
+    console.error('[Neon Postgres] deleteDbUser error:', err.message);
+    return false;
+  }
+}
+

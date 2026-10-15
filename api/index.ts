@@ -16,7 +16,11 @@ import type {
   AdminStats, 
   HealthResponse,
   VerifyResponseBody,
-  AdminRole
+  AdminRole,
+  User,
+  UserDTO,
+  ChangePasswordRequest,
+  CreateUserRequest
 } from '../types/index';
 
 // Configuration & Secrets
@@ -43,7 +47,9 @@ export const ROLE_PERMISSIONS: Record<AdminRole, string[]> = {
     'version:manage',
     'system:backup',
     'system:restore',
-    'audit:view'
+    'audit:view',
+    'users:view',
+    'users:manage'
   ],
   Support: [
     'dashboard:view',
@@ -58,7 +64,8 @@ export const ROLE_PERMISSIONS: Record<AdminRole, string[]> = {
   Auditor: [
     'dashboard:view',
     'licenses:view',
-    'audit:view'
+    'audit:view',
+    'users:view'
   ]
 };
 
@@ -172,6 +179,46 @@ const DEFAULT_LICENSES: License[] = [
 let memoryLicenses: License[] | null = null;
 let memoryVersion: VersionConfig | null = null;
 let memoryLogs: ActivationLog[] | null = null;
+let memoryUsers: User[] | null = null;
+
+const DEFAULT_USERS: User[] = [
+  {
+    id: 1,
+    username: "admin",
+    passwordHash: "220b3ad4523152494a3639e7f96d1e40:73c06b10df60d167d0d3b7e0694cd434b4e355a3cec9d8d2d570b97282db2b41",
+    fullName: "Quản Trị Viên Trưởng (SuperAdmin)",
+    email: "admin@ltvstudio.com",
+    role: "SuperAdmin",
+    status: "ACTIVE",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    lastLoginAt: null
+  },
+  {
+    id: 2,
+    username: "support",
+    passwordHash: "8b4ec3b1813089a52e42d2d8281e8e6a:3961dcbeb57b57440088c79ac1316f8321e0b086da6d013ff8ec75f8df91b39d",
+    fullName: "Chuyên Viên CSKH & Kỹ Thuật (Support)",
+    email: "support@ltvstudio.com",
+    role: "Support",
+    status: "ACTIVE",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    lastLoginAt: null
+  },
+  {
+    id: 3,
+    username: "auditor",
+    passwordHash: "92d823c3dc443b539d98abfb42742d10:534a2fe67fdf42b502c206068a74428e8492244ddfc62912a4f7e22bc9993793",
+    fullName: "Kiểm Toán & Kế Toán Hệ Thống (Auditor)",
+    email: "auditor@ltvstudio.com",
+    role: "Auditor",
+    status: "ACTIVE",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    lastLoginAt: null
+  }
+];
 
 // ── SECURITY & RATE LIMITING HELPERS ─────────────────────────
 
@@ -566,6 +613,150 @@ function generateKey(plan: string = 'PRO'): string {
   return `${prefix}-${part1}-${part2}-${part3}`;
 }
 
+// ── USER MANAGEMENT FUNCTIONS (DB WITH JSON FALLBACK) ─────────
+async function getFallbackUsers(): Promise<User[]> {
+  if (memoryUsers) return memoryUsers;
+  const pathsToTry = [
+    path.join(LOCAL_DATA_DIR, 'users.json'),
+    path.join(TMP_DATA_DIR, 'users.json')
+  ];
+
+  for (const p of pathsToTry) {
+    try {
+      if (fs.existsSync(p)) {
+        const content = fs.readFileSync(p, 'utf8');
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          memoryUsers = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {}
+  }
+
+  memoryUsers = JSON.parse(JSON.stringify(DEFAULT_USERS));
+  await saveFallbackUsers(memoryUsers!);
+  return memoryUsers!;
+}
+
+async function saveFallbackUsers(users: User[]): Promise<void> {
+  memoryUsers = users;
+  const pathsToTry = [
+    path.join(LOCAL_DATA_DIR, 'users.json'),
+    path.join(TMP_DATA_DIR, 'users.json')
+  ];
+
+  for (const p of pathsToTry) {
+    try {
+      const dir = path.dirname(p);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(p, JSON.stringify(users, null, 2), 'utf8');
+    } catch (e) {}
+  }
+}
+
+async function getAllUsers(): Promise<User[]> {
+  if (neonDb.isNeonConfigured()) {
+    try {
+      const dbUsers = await neonDb.getAllDbUsers();
+      if (dbUsers && dbUsers.length > 0) return dbUsers;
+    } catch (e) {}
+  }
+  return await getFallbackUsers();
+}
+
+async function getUserByUsername(username: string): Promise<User | null> {
+  if (!username) return null;
+  const clean = username.trim().toLowerCase();
+  if (neonDb.isNeonConfigured()) {
+    try {
+      const dbUser = await neonDb.getDbUserByUsername(clean);
+      if (dbUser) return dbUser;
+    } catch (e) {}
+  }
+  const users = await getFallbackUsers();
+  return users.find(u => u.username.toLowerCase() === clean) || null;
+}
+
+async function createUser(user: User): Promise<boolean> {
+  if (neonDb.isNeonConfigured()) {
+    try {
+      await neonDb.createDbUser(user);
+    } catch (e) {}
+  }
+  const users = await getFallbackUsers();
+  const exists = users.find(u => u.username.toLowerCase() === user.username.toLowerCase());
+  if (exists) return false;
+  users.push({
+    ...user,
+    id: users.length > 0 ? Math.max(...users.map(u => u.id || 0)) + 1 : 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+  await saveFallbackUsers(users);
+  return true;
+}
+
+async function updateUser(username: string, updates: Partial<User>): Promise<boolean> {
+  if (neonDb.isNeonConfigured()) {
+    try {
+      await neonDb.updateDbUser(username, updates);
+    } catch (e) {}
+  }
+  const users = await getFallbackUsers();
+  const idx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+  if (idx === -1) return false;
+  users[idx] = {
+    ...users[idx],
+    ...updates,
+    updatedAt: new Date().toISOString()
+  };
+  await saveFallbackUsers(users);
+  return true;
+}
+
+async function updateUserPassword(username: string, newPasswordHash: string): Promise<boolean> {
+  if (neonDb.isNeonConfigured()) {
+    try {
+      await neonDb.updateDbUserPassword(username, newPasswordHash);
+    } catch (e) {}
+  }
+  const users = await getFallbackUsers();
+  const idx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+  if (idx === -1) return false;
+  users[idx].passwordHash = newPasswordHash;
+  users[idx].updatedAt = new Date().toISOString();
+  await saveFallbackUsers(users);
+  return true;
+}
+
+async function updateUserLastLogin(username: string): Promise<boolean> {
+  if (neonDb.isNeonConfigured()) {
+    try {
+      await neonDb.updateDbUserLastLogin(username);
+    } catch (e) {}
+  }
+  const users = await getFallbackUsers();
+  const idx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+  if (idx === -1) return false;
+  users[idx].lastLoginAt = new Date().toISOString();
+  await saveFallbackUsers(users);
+  return true;
+}
+
+async function deleteUser(username: string): Promise<boolean> {
+  if (neonDb.isNeonConfigured()) {
+    try {
+      await neonDb.deleteDbUser(username);
+    } catch (e) {}
+  }
+  const users = await getFallbackUsers();
+  const filtered = users.filter(u => u.username.toLowerCase() !== username.toLowerCase());
+  if (filtered.length === users.length) return false;
+  await saveFallbackUsers(filtered);
+  return true;
+}
+
 // ── SERVERLESS MAIN HANDLER ──────────────────────────────────
 export default async function handler(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   // 1. OWASP Standard Defensive Security Headers
@@ -603,7 +794,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
   // 4. Ensure Neon Postgres DB is initialized if configured
   const useNeon = neonDb.isNeonConfigured();
   if (useNeon) {
-    await neonDb.initDb(DEFAULT_LICENSES, DEFAULT_VERSION);
+    await neonDb.initDb(DEFAULT_LICENSES, DEFAULT_VERSION, DEFAULT_USERS);
   }
 
   const host = req.headers.host || 'localhost';
@@ -814,6 +1005,7 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
     }
 
     // ── 0.0 ADMIN LOGIN & SESSION TOKEN ISSUANCE ──────────────
+    // ── 0.0 ADMIN LOGIN & SESSION TOKEN ISSUANCE ──────────────
     if (pathname === '/api/admin/login' && req.method === 'POST') {
       const adminLock = checkAdminLock(clientIp);
       if (adminLock.locked) {
@@ -836,28 +1028,66 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       const username = (body.username || 'admin').trim();
       const requestedRole = (body.role || '').trim();
 
-      const auth = validateRoleCredentials(secret, username, requestedRole);
-      if (!auth || !auth.valid) {
-        recordAdminFailure(clientIp);
-        return sendJson(401, {
-          error: 'Unauthorized',
-          message: 'Mã Quản trị viên, tài khoản hoặc mật khẩu không chính xác!'
-        });
+      // 1. Xác thực trực tiếp từ CSDL Users (bảng users / users.json dự phòng)
+      let authenticatedUser: User | null = null;
+      const targetUser = await getUserByUsername(username);
+
+      if (targetUser) {
+        if (targetUser.status !== 'ACTIVE') {
+          return sendJson(403, {
+            error: 'AccountLocked',
+            message: 'Tài khoản này đã bị khóa hoặc tạm ngưng hoạt động. Vui lòng liên hệ Quản trị viên cấp cao.'
+          });
+        }
+
+        // Kiểm tra mật khẩu mã hóa an toàn (Salted SHA-256)
+        if (neonDb.verifyPassword(secret, targetUser.passwordHash)) {
+          authenticatedUser = targetUser;
+        }
+      }
+
+      // 2. Fallback sang validateRoleCredentials (bảo toàn tương thích ngược tuyệt đối)
+      let finalRole: AdminRole = 'SuperAdmin';
+      let finalUsername: string = username;
+      let finalFullName: string = 'Quản Trị Viên';
+      let finalEmail: string = '';
+
+      if (authenticatedUser) {
+        finalRole = authenticatedUser.role;
+        finalUsername = authenticatedUser.username;
+        finalFullName = authenticatedUser.fullName || authenticatedUser.username;
+        finalEmail = authenticatedUser.email || '';
+        await updateUserLastLogin(authenticatedUser.username);
+      } else {
+        const fallbackAuth = validateRoleCredentials(secret, username, requestedRole);
+        if (fallbackAuth && fallbackAuth.valid) {
+          finalRole = fallbackAuth.role;
+          finalUsername = fallbackAuth.username;
+          finalFullName = fallbackAuth.username === 'admin' ? 'Super Administrator' : fallbackAuth.username;
+        } else {
+          recordAdminFailure(clientIp);
+          return sendJson(401, {
+            error: 'Unauthorized',
+            message: 'Mã Quản trị viên, tài khoản hoặc mật khẩu không chính xác!'
+          });
+        }
       }
 
       resetAdminFailure(clientIp);
-      const token = createAdminSessionToken(auth.role, auth.username, AUTH_TOKEN_TTL_SECONDS);
+      const token = createAdminSessionToken(finalRole, finalUsername, AUTH_TOKEN_TTL_SECONDS);
       return sendJson(200, {
         success: true,
         token: token,
         expiresIn: AUTH_TOKEN_TTL_SECONDS,
         user: {
-          username: auth.username,
-          role: auth.role,
-          permissions: ROLE_PERMISSIONS[auth.role],
+          username: finalUsername,
+          fullName: finalFullName,
+          email: finalEmail,
+          role: finalRole,
+          permissions: ROLE_PERMISSIONS[finalRole],
           loginAt: new Date().toISOString()
         },
-        message: `Đăng nhập Quản trị viên thành công (Vai trò: ${auth.role})!`
+        message: `Đăng nhập Quản trị viên thành công (Vai trò: ${finalRole})!`
       });
     }
 
@@ -884,6 +1114,262 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       return sendJson(200, {
         success: true,
         message: 'Đã đăng xuất khỏi tài khoản Quản trị viên thành công!'
+      });
+    }
+
+    // ── 0.03 ADMIN CHANGE PASSWORD ─────────────────────────────
+    if (pathname === '/api/admin/change-password' && req.method === 'POST') {
+      const session = getAuthorizedAdminSession();
+      if (!session.authorized) return sendAdminUnauthorized();
+
+      const body = await getBody(16384);
+      const currentPassword = (body.currentPassword || body.oldPassword || '').trim();
+      const newPassword = (body.newPassword || '').trim();
+      const targetUsername = (body.targetUsername || body.username || session.username).trim();
+
+      if (!newPassword || newPassword.length < 6) {
+        return sendJson(400, {
+          error: 'BadRequest',
+          message: 'Mật khẩu mới phải có độ dài tối thiểu từ 6 ký tự trở lên!'
+        });
+      }
+
+      const isSelf = targetUsername.toLowerCase() === session.username.toLowerCase();
+
+      // Nếu không phải tự đổi mật khẩu chính mình -> bắt buộc phải là SuperAdmin
+      if (!isSelf && session.role !== 'SuperAdmin' && !session.permissions.includes('users:manage')) {
+        return sendJson(403, {
+          error: 'Forbidden',
+          message: 'Bạn không có quyền đổi mật khẩu cho tài khoản người dùng khác!'
+        });
+      }
+
+      const targetUser = await getUserByUsername(targetUsername);
+      if (!targetUser) {
+        return sendJson(404, {
+          error: 'NotFound',
+          message: `Không tìm thấy tài khoản '${targetUsername}' trong hệ thống!`
+        });
+      }
+
+      // Nếu tự đổi mật khẩu cho chính mình, bắt buộc phải cung cấp mật khẩu cũ đúng
+      if (isSelf) {
+        if (!currentPassword) {
+          return sendJson(400, {
+            error: 'BadRequest',
+            message: 'Vui lòng cung cấp mật khẩu hiện tại để xác thực!'
+          });
+        }
+        if (!neonDb.verifyPassword(currentPassword, targetUser.passwordHash)) {
+          return sendJson(400, {
+            error: 'InvalidCurrentPassword',
+            message: 'Mật khẩu hiện tại không chính xác!'
+          });
+        }
+      }
+
+      const newHash = neonDb.hashPassword(newPassword);
+      await updateUserPassword(targetUser.username, newHash);
+
+      return sendJson(200, {
+        success: true,
+        message: isSelf
+          ? 'Đổi mật khẩu thành công! Vui lòng ghi nhớ mật khẩu mới của bạn.'
+          : `Đã thiết lập lại mật khẩu cho tài khoản '${targetUsername}' thành công!`
+      });
+    }
+
+    // ── 0.04 ADMIN USER MANAGEMENT (CRUD USERS) ────────────────
+    // GET: Danh sách users
+    if (pathname === '/api/admin/users' && req.method === 'GET') {
+      const session = getAuthorizedAdminSession();
+      if (!session.authorized) return sendAdminUnauthorized();
+      if (session.role !== 'SuperAdmin' && !session.permissions.includes('users:view')) {
+        return sendJson(403, { error: 'Forbidden', message: 'Bạn không có quyền xem danh sách người dùng.' });
+      }
+
+      const users = await getAllUsers();
+      const dtos = users.map(u => ({
+        id: u.id,
+        username: u.username,
+        fullName: u.fullName,
+        email: u.email,
+        role: u.role,
+        status: u.status,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+        lastLoginAt: u.lastLoginAt
+      }));
+
+      return sendJson(200, {
+        success: true,
+        count: dtos.length,
+        users: dtos
+      });
+    }
+
+    // POST: Tạo user mới
+    if (pathname === '/api/admin/users' && req.method === 'POST') {
+      const session = getAuthorizedAdminSession();
+      if (!session.authorized) return sendAdminUnauthorized();
+      if (session.role !== 'SuperAdmin' && !session.permissions.includes('users:manage')) {
+        return sendJson(403, { error: 'Forbidden', message: 'Chỉ Quản trị viên cấp cao (SuperAdmin) mới có quyền tạo người dùng mới.' });
+      }
+
+      const body = await getBody(16384);
+      const username = (body.username || '').trim().toLowerCase();
+      const password = (body.password || '').trim();
+      const fullName = (body.fullName || '').trim() || username;
+      const email = (body.email || '').trim().toLowerCase();
+      let role: AdminRole = 'Support';
+      if (body.role === 'SuperAdmin') role = 'SuperAdmin';
+      else if (body.role === 'Auditor') role = 'Auditor';
+      else role = 'Support';
+
+      const status = (body.status === 'SUSPENDED' || body.status === 'INACTIVE') ? 'SUSPENDED' : 'ACTIVE';
+
+      if (!username || username.length < 3 || username.length > 32 || !/^[a-zA-Z0-9_\-\.]+$/.test(username)) {
+        return sendJson(400, { error: 'BadRequest', message: 'Tên tài khoản không hợp lệ (3-32 ký tự chữ cái, số, gạch dưới).' });
+      }
+      if (!password || password.length < 6) {
+        return sendJson(400, { error: 'BadRequest', message: 'Mật khẩu phải có độ dài tối thiểu từ 6 ký tự trở lên.' });
+      }
+
+      const existing = await getUserByUsername(username);
+      if (existing) {
+        return sendJson(409, { error: 'Conflict', message: `Tài khoản '${username}' đã tồn tại trong hệ thống.` });
+      }
+
+      const passwordHash = neonDb.hashPassword(password);
+      const newUser: User = {
+        username,
+        passwordHash,
+        fullName,
+        email,
+        role,
+        status,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastLoginAt: null
+      };
+
+      const created = await createUser(newUser);
+      if (!created) {
+        return sendJson(500, { error: 'InternalServerError', message: 'Không thể tạo người dùng. Vui lòng thử lại.' });
+      }
+
+      return sendJson(201, {
+        success: true,
+        message: `Đã tạo tài khoản '${username}' thành công với vai trò ${role}!`,
+        user: {
+          username: newUser.username,
+          fullName: newUser.fullName,
+          email: newUser.email,
+          role: newUser.role,
+          status: newUser.status,
+          createdAt: newUser.createdAt
+        }
+      });
+    }
+
+    // POST / PUT: Cập nhật thông tin user
+    if ((pathname === '/api/admin/users/update' || pathname === '/api/admin/users') && (req.method === 'POST' || req.method === 'PUT')) {
+      const session = getAuthorizedAdminSession();
+      if (!session.authorized) return sendAdminUnauthorized();
+      if (session.role !== 'SuperAdmin' && !session.permissions.includes('users:manage')) {
+        return sendJson(403, { error: 'Forbidden', message: 'Bạn không có quyền chỉnh sửa thông tin người dùng.' });
+      }
+
+      const body = await getBody(16384);
+      const username = (body.username || '').trim().toLowerCase();
+      if (!username) {
+        return sendJson(400, { error: 'BadRequest', message: 'Vui lòng chỉ định tài khoản cần cập nhật.' });
+      }
+
+      const target = await getUserByUsername(username);
+      if (!target) {
+        return sendJson(404, { error: 'NotFound', message: `Không tìm thấy tài khoản '${username}'.` });
+      }
+
+      const updates: Partial<User> = {};
+      if (body.fullName !== undefined) updates.fullName = String(body.fullName).trim();
+      if (body.email !== undefined) updates.email = String(body.email).trim();
+
+      if (body.role && (body.role === 'SuperAdmin' || body.role === 'Support' || body.role === 'Auditor')) {
+        // Ngăn chặn tự hạ quyền chính mình nếu đang là tài khoản admin
+        if (target.username === 'admin' && body.role !== 'SuperAdmin') {
+          return sendJson(400, { error: 'BadRequest', message: 'Không được hạ vai trò của tài khoản quản trị gốc (admin).' });
+        }
+        updates.role = body.role as AdminRole;
+      }
+
+      if (body.status && (body.status === 'ACTIVE' || body.status === 'SUSPENDED' || body.status === 'INACTIVE')) {
+        if (target.username === 'admin' && body.status !== 'ACTIVE') {
+          return sendJson(400, { error: 'BadRequest', message: 'Không được khóa tài khoản quản trị gốc (admin).' });
+        }
+        updates.status = body.status === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED';
+      }
+
+      await updateUser(username, updates);
+      return sendJson(200, {
+        success: true,
+        message: `Đã cập nhật thông tin tài khoản '${username}' thành công!`
+      });
+    }
+
+    // POST: Bật/Tắt trạng thái tài khoản
+    if (pathname === '/api/admin/users/toggle-status' && req.method === 'POST') {
+      const session = getAuthorizedAdminSession();
+      if (!session.authorized) return sendAdminUnauthorized();
+      if (session.role !== 'SuperAdmin' && !session.permissions.includes('users:manage')) {
+        return sendJson(403, { error: 'Forbidden', message: 'Bạn không có quyền thay đổi trạng thái người dùng.' });
+      }
+
+      const body = await getBody(16384);
+      const username = (body.username || '').trim().toLowerCase();
+      if (!username) return sendJson(400, { error: 'BadRequest', message: 'Thiếu username.' });
+
+      if (username === 'admin' || username === session.username.toLowerCase()) {
+        return sendJson(400, { error: 'BadRequest', message: 'Không thể tự khóa tài khoản của chính mình hoặc tài khoản admin gốc.' });
+      }
+
+      const target = await getUserByUsername(username);
+      if (!target) return sendJson(404, { error: 'NotFound', message: 'Không tìm thấy tài khoản.' });
+
+      const newStatus = target.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+      await updateUser(username, { status: newStatus });
+
+      return sendJson(200, {
+        success: true,
+        status: newStatus,
+        message: `Đã chuyển trạng thái tài khoản '${username}' sang ${newStatus === 'ACTIVE' ? 'ĐANG HOẠT ĐỘNG' : 'ĐÃ TẠM KHÓA'}.`
+      });
+    }
+
+    // POST / DELETE: Xóa user
+    if ((pathname === '/api/admin/users/delete' || pathname === '/api/admin/users') && (req.method === 'POST' || req.method === 'DELETE')) {
+      const session = getAuthorizedAdminSession();
+      if (!session.authorized) return sendAdminUnauthorized();
+      if (session.role !== 'SuperAdmin' && !session.permissions.includes('users:manage')) {
+        return sendJson(403, { error: 'Forbidden', message: 'Bạn không có quyền xóa người dùng.' });
+      }
+
+      const body = await getBody(16384);
+      const username = (body.username || (query.username as string) || '').trim().toLowerCase();
+      if (!username) return sendJson(400, { error: 'BadRequest', message: 'Thiếu username cần xóa.' });
+
+      if (username === 'admin' || username === session.username.toLowerCase()) {
+        return sendJson(400, { error: 'BadRequest', message: 'Không được phép xóa tài khoản admin gốc hoặc tài khoản đang đăng nhập.' });
+      }
+
+      const deleted = await deleteUser(username);
+      if (!deleted) {
+        return sendJson(404, { error: 'NotFound', message: `Không tìm thấy tài khoản '${username}' để xóa.` });
+      }
+
+      return sendJson(200, {
+        success: true,
+        message: `Đã xóa tài khoản '${username}' khỏi hệ thống thành công!`
       });
     }
 

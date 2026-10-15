@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentAdminPermissions = [];
   }
   let adminLicenses = [];
+  let adminUsers = [];
+  let currentAdminUsername = localStorage.getItem('ltv_admin_username') || 'admin';
   const selectedKeySet = new Set();
   const currentAdminFilter = { search: '', status: 'ALL', plan: 'ALL' };
   let selectedLoginRole = 'SuperAdmin';
@@ -308,6 +310,11 @@ document.addEventListener('DOMContentLoaded', () => {
       btnOpenCreateModal.style.display = (currentAdminRole === 'SuperAdmin' || currentAdminRole === 'Support') ? 'inline-flex' : 'none';
     }
 
+    const tabUsersBtn = document.getElementById('tabUsersBtn');
+    if (tabUsersBtn) {
+      tabUsersBtn.style.display = currentAdminRole === 'SuperAdmin' ? 'inline-flex' : 'none';
+    }
+
     const btnSaveVer = document.getElementById('btnSaveVersionConfig');
     const versionWarning = document.getElementById('versionRoleWarning');
     if (btnSaveVer) {
@@ -333,16 +340,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── AUTH & SESSION CONTROLLER ──────────────────────────────
   function setAuthenticatedState(isAuthenticated, username = 'Admin', role = 'SuperAdmin', permissions = []) {
+    const mobileDrawerProfile = document.getElementById('mobileDrawerProfile');
+    const mobileDrawerAdminName = document.getElementById('mobileDrawerAdminName');
+    const mobileDrawerRoleBadge = document.getElementById('mobileDrawerRoleBadge');
+    const btnMobileDrawerLogout = document.getElementById('btnMobileDrawerLogout');
+
     if (isAuthenticated) {
       if (adminLoginSection) adminLoginSection.style.display = 'none';
       if (adminDashboardSection) adminDashboardSection.style.display = 'block';
       if (navAdminProfilePill) navAdminProfilePill.style.display = 'flex';
       if (navAdminName) navAdminName.textContent = username;
+      currentAdminUsername = username;
+      localStorage.setItem('ltv_admin_username', username);
       applyRolePermissions(role, permissions);
+
+      if (mobileDrawerProfile) {
+        mobileDrawerProfile.style.display = 'flex';
+        if (mobileDrawerAdminName) mobileDrawerAdminName.textContent = username;
+        if (mobileDrawerRoleBadge) {
+          mobileDrawerRoleBadge.textContent = role;
+          mobileDrawerRoleBadge.className = 'role-badge ' + (
+            role === 'SuperAdmin' ? 'role-badge-superadmin' :
+            role === 'Support' ? 'role-badge-support' : 'role-badge-auditor'
+          );
+        }
+      }
+      if (btnMobileDrawerLogout) btnMobileDrawerLogout.onclick = () => handleLogout();
     } else {
       if (adminLoginSection) adminLoginSection.style.display = 'flex';
       if (adminDashboardSection) adminDashboardSection.style.display = 'none';
       if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
+      if (mobileDrawerProfile) mobileDrawerProfile.style.display = 'none';
       if (adminSecretInput) adminSecretInput.value = '';
     }
   }
@@ -493,6 +521,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (subtabId === 'subtab-version') {
         loadVersionConfig();
+      } else if (subtabId === 'subtab-users') {
+        loadAdminUsers();
       }
     });
   });
@@ -1367,6 +1397,403 @@ Chúc bạn có những trải nghiệm tuyệt vời cùng LTVStudio!
       };
       reader.readAsText(file);
       importJsonInput.value = '';
+    });
+  }
+
+  // ── CHANGE PASSWORD CONTROLLER ─────────────────────────────
+  const changePasswordModal = document.getElementById('changePasswordModal');
+  const btnOpenChangePasswordModal = document.getElementById('btnOpenChangePasswordModal');
+  const btnCloseChangePasswordModal = document.getElementById('btnCloseChangePasswordModal');
+  const btnCancelChangePassword = document.getElementById('btnCancelChangePassword');
+  const changePasswordForm = document.getElementById('changePasswordForm');
+  const btnSubmitChangePassword = document.getElementById('btnSubmitChangePassword');
+  const changePasswordTargetUser = document.getElementById('changePasswordTargetUser');
+  const changePasswordUsernameDisplay = document.getElementById('changePasswordUsernameDisplay');
+  const changePasswordRoleDisplay = document.getElementById('changePasswordRoleDisplay');
+  const currentPasswordGroup = document.getElementById('currentPasswordGroup');
+  const currentPasswordInput = document.getElementById('currentPasswordInput');
+  const newPasswordInput = document.getElementById('newPasswordInput');
+  const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+
+  // Toggle Eye Buttons for Password Inputs
+  function bindToggleEye(btnId, inputId) {
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    if (btn && input) {
+      btn.addEventListener('click', () => {
+        const isPass = input.type === 'password';
+        input.type = isPass ? 'text' : 'password';
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = isPass ? 'fa-regular fa-eye-slash text-cyan' : 'fa-regular fa-eye';
+      });
+    }
+  }
+
+  bindToggleEye('btnToggleCurrentPassword', 'currentPasswordInput');
+  bindToggleEye('btnToggleNewPassword', 'newPasswordInput');
+  bindToggleEye('btnToggleConfirmPassword', 'confirmPasswordInput');
+  bindToggleEye('btnToggleNewUserPassword', 'newUserPasswordInput');
+
+  window.openChangePasswordDialog = function(targetUser = null) {
+    if (!changePasswordModal) return;
+    const isSelf = !targetUser || targetUser.username === currentAdminUsername;
+
+    if (changePasswordTargetUser) {
+      changePasswordTargetUser.value = isSelf ? currentAdminUsername : targetUser.username;
+    }
+    if (changePasswordUsernameDisplay) {
+      changePasswordUsernameDisplay.textContent = isSelf ? currentAdminUsername : targetUser.username;
+    }
+    if (changePasswordRoleDisplay) {
+      const role = isSelf ? currentAdminRole : (targetUser.role || 'Support');
+      changePasswordRoleDisplay.textContent = role;
+      changePasswordRoleDisplay.className = 'role-badge ' + (
+        role === 'SuperAdmin' ? 'role-badge-superadmin' :
+        role === 'Support' ? 'role-badge-support' : 'role-badge-auditor'
+      );
+    }
+
+    if (currentPasswordGroup) {
+      currentPasswordGroup.style.display = isSelf ? 'block' : 'none';
+    }
+
+    if (currentPasswordInput) currentPasswordInput.value = '';
+    if (newPasswordInput) newPasswordInput.value = '';
+    if (confirmPasswordInput) confirmPasswordInput.value = '';
+
+    changePasswordModal.classList.add('active');
+  };
+
+  if (btnOpenChangePasswordModal) {
+    btnOpenChangePasswordModal.addEventListener('click', () => {
+      window.openChangePasswordDialog(null);
+    });
+  }
+
+  if (btnCloseChangePasswordModal) {
+    btnCloseChangePasswordModal.addEventListener('click', () => {
+      changePasswordModal.classList.remove('active');
+    });
+  }
+
+  if (btnCancelChangePassword) {
+    btnCancelChangePassword.addEventListener('click', () => {
+      changePasswordModal.classList.remove('active');
+    });
+  }
+
+  if (btnSubmitChangePassword) {
+    btnSubmitChangePassword.addEventListener('click', async () => {
+      const targetUsername = changePasswordTargetUser ? changePasswordTargetUser.value : currentAdminUsername;
+      const isSelf = targetUsername === currentAdminUsername;
+      const currentPassword = currentPasswordInput ? currentPasswordInput.value.trim() : '';
+      const newPassword = newPasswordInput ? newPasswordInput.value.trim() : '';
+      const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value.trim() : '';
+
+      if (isSelf && !currentPassword) {
+        showToast('Vui lòng nhập mật khẩu hiện tại!', 'error');
+        if (currentPasswordInput) currentPasswordInput.focus();
+        return;
+      }
+
+      if (!newPassword || newPassword.length < 6) {
+        showToast('Mật khẩu mới phải có tối thiểu 6 ký tự!', 'error');
+        if (newPasswordInput) newPasswordInput.focus();
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showToast('Xác nhận mật khẩu mới không trùng khớp!', 'error');
+        if (confirmPasswordInput) confirmPasswordInput.focus();
+        return;
+      }
+
+      btnSubmitChangePassword.disabled = true;
+      btnSubmitChangePassword.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+
+      try {
+        const res = await fetch('/api/admin/change-password', {
+          method: 'POST',
+          headers: getAdminHeaders(),
+          body: JSON.stringify({
+            targetUsername,
+            currentPassword,
+            newPassword
+          })
+        });
+        const data = await res.json();
+
+        if (res.status === 200 && data.success) {
+          showToast(data.message || '✓ Đổi mật khẩu thành công!', 'success');
+          changePasswordModal.classList.remove('active');
+        } else {
+          showToast(data.message || 'Lỗi khi đổi mật khẩu!', 'error');
+        }
+      } catch (err) {
+        showToast('Lỗi: ' + err.message, 'error');
+      } finally {
+        btnSubmitChangePassword.disabled = false;
+        btnSubmitChangePassword.innerHTML = '<i class="fa-solid fa-shield-check"></i> Cập Nhật Mật Khẩu';
+      }
+    });
+  }
+
+  // ── USER MANAGEMENT CONTROLLER ─────────────────────────────
+  const usersTableBody = document.getElementById('usersTableBody');
+  const usersTotalBadge = document.getElementById('usersTotalBadge');
+  const btnReloadUsers = document.getElementById('btnReloadUsers');
+  const createUserModal = document.getElementById('createUserModal');
+  const btnOpenCreateUserModal = document.getElementById('btnOpenCreateUserModal');
+  const btnCloseCreateUserModal = document.getElementById('btnCloseCreateUserModal');
+  const btnCancelCreateUser = document.getElementById('btnCancelCreateUser');
+  const btnSubmitCreateUser = document.getElementById('btnSubmitCreateUser');
+  const newUsernameInput = document.getElementById('newUsernameInput');
+  const newFullNameInput = document.getElementById('newFullNameInput');
+  const newEmailInput = document.getElementById('newEmailInput');
+  const newUserPasswordInput = document.getElementById('newUserPasswordInput');
+  const newUserRoleSelect = document.getElementById('newUserRoleSelect');
+
+  async function loadAdminUsers() {
+    if (!usersTableBody) return;
+    usersTableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-4 text-muted">
+          <i class="fa-solid fa-spinner fa-spin"></i> Đang tải danh sách người dùng...
+        </td>
+      </tr>
+    `;
+
+    try {
+      const res = await fetch('/api/admin/users', { headers: getAdminHeaders() });
+      const data = await res.json();
+
+      if (res.status === 200 && Array.isArray(data.users)) {
+        adminUsers = data.users;
+        if (usersTotalBadge) usersTotalBadge.textContent = `${adminUsers.length} Tài Khoản`;
+        renderUsersTable(adminUsers);
+      } else {
+        usersTableBody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-4 text-rose">
+              ${data.message || 'Không có quyền truy cập danh sách người dùng.'}
+            </td>
+          </tr>
+        `;
+      }
+    } catch (e) {
+      usersTableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-4 text-rose">
+            Lỗi kết nối máy chủ khi tải người dùng.
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  function renderUsersTable(users) {
+    if (!usersTableBody) return;
+    if (users.length === 0) {
+      usersTableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            Chưa có tài khoản người dùng nào.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    usersTableBody.innerHTML = users.map(u => {
+      const isRoot = u.username === 'admin';
+      const isSelf = u.username.toLowerCase() === currentAdminUsername.toLowerCase();
+      const roleBadgeClass = u.role === 'SuperAdmin' ? 'role-badge-superadmin' :
+                             u.role === 'Support' ? 'role-badge-support' : 'role-badge-auditor';
+
+      const isSuspended = u.status === 'SUSPENDED' || u.status === 'LOCKED';
+      const statusBadge = isSuspended
+        ? '<span class="badge badge-revoked"><span class="legend-dot red"></span> BỊ TẠM KHÓA</span>'
+        : '<span class="badge badge-active"><span class="legend-dot green"></span> HOẠT ĐỘNG</span>';
+
+      const lastLogin = u.lastLoginAt
+        ? new Date(u.lastLoginAt).toLocaleString('vi-VN')
+        : '<span class="text-muted">Chưa đăng nhập</span>';
+
+      const toggleBtnTitle = isSuspended ? 'Mở khóa tài khoản' : 'Tạm khóa tài khoản';
+      const toggleIcon = isSuspended ? 'fa-lock-open text-emerald' : 'fa-lock text-amber';
+
+      let actionsHtml = `
+        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem;">
+          <button class="btn btn-sm btn-outline" onclick="window.openChangePasswordDialog({username: '${escapeHtml(u.username)}', role: '${escapeHtml(u.role)}'})" title="Đổi mật khẩu cho user này">
+            <i class="fa-solid fa-key"></i> Đổi Pass
+          </button>
+      `;
+
+      if (!isRoot && !isSelf) {
+        actionsHtml += `
+          <button class="btn btn-sm btn-outline" onclick="window.toggleUserLock('${escapeHtml(u.username)}', '${isSuspended ? 'ACTIVE' : 'SUSPENDED'}')" title="${toggleBtnTitle}">
+            <i class="fa-solid ${toggleIcon}"></i>
+          </button>
+          <button class="btn btn-sm btn-outline text-rose" onclick="window.deleteUserConfirm('${escapeHtml(u.username)}')" title="Xóa tài khoản vĩnh viễn">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        `;
+      } else {
+        actionsHtml += `
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic; padding: 0 0.4rem;">
+            ${isRoot ? '(Root)' : '(Đang dùng)'}
+          </span>
+        `;
+      }
+
+      actionsHtml += '</div>';
+
+      return `
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-user-circle" style="color: var(--accent-cyan); font-size: 1.1rem;"></i>
+              <strong style="color: #f8fafc;">${escapeHtml(u.username)}</strong>
+            </div>
+          </td>
+          <td>${escapeHtml(u.fullName || '--')}</td>
+          <td><span style="color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(u.email || '--')}</span></td>
+          <td><span class="role-badge ${roleBadgeClass}">${escapeHtml(u.role)}</span></td>
+          <td>${statusBadge}</td>
+          <td style="font-size: 0.82rem; color: var(--text-muted);">${lastLogin}</td>
+          <td style="text-align: right;">${actionsHtml}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  window.toggleUserLock = function(username, targetStatus) {
+    const isLocking = targetStatus === 'SUSPENDED';
+    showCustomConfirm(
+      isLocking ? '<i class="fa-solid fa-lock text-amber"></i> Khóa Tài Khoản' : '<i class="fa-solid fa-lock-open text-emerald"></i> Mở Khóa Tài Khoản',
+      `Bạn có chắc chắn muốn ${isLocking ? 'tạm khóa' : 'mở khóa hoạt động'} cho tài khoản [${username}]?`,
+      async () => {
+        try {
+          const res = await fetch('/api/admin/users/toggle-status', {
+            method: 'POST',
+            headers: getAdminHeaders(),
+            body: JSON.stringify({ username })
+          });
+          const data = await res.json();
+          if (res.status === 200) {
+            showToast(data.message || '✓ Cập nhật trạng thái thành công!', 'success');
+            loadAdminUsers();
+          } else {
+            showToast(data.message || 'Lỗi cập nhật trạng thái', 'error');
+          }
+        } catch (e) {
+          showToast('Lỗi: ' + e.message, 'error');
+        }
+      }
+    );
+  };
+
+  window.deleteUserConfirm = function(username) {
+    showCustomConfirm(
+      '<i class="fa-solid fa-trash text-rose"></i> Xóa Tài Khoản',
+      `Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản [${username}]? Thao tác này không thể hoàn tác!`,
+      async () => {
+        try {
+          const res = await fetch('/api/admin/users/delete', {
+            method: 'POST',
+            headers: getAdminHeaders(),
+            body: JSON.stringify({ username })
+          });
+          const data = await res.json();
+          if (res.status === 200) {
+            showToast(data.message || '✓ Đã xóa tài khoản thành công!', 'success');
+            loadAdminUsers();
+          } else {
+            showToast(data.message || 'Lỗi xóa tài khoản', 'error');
+          }
+        } catch (e) {
+          showToast('Lỗi: ' + e.message, 'error');
+        }
+      }
+    );
+  };
+
+  if (btnReloadUsers) btnReloadUsers.addEventListener('click', loadAdminUsers);
+
+  if (btnOpenCreateUserModal) {
+    btnOpenCreateUserModal.addEventListener('click', () => {
+      if (createUserModal) {
+        if (newUsernameInput) newUsernameInput.value = '';
+        if (newFullNameInput) newFullNameInput.value = '';
+        if (newEmailInput) newEmailInput.value = '';
+        if (newUserPasswordInput) newUserPasswordInput.value = '';
+        if (newUserRoleSelect) newUserRoleSelect.value = 'Support';
+        createUserModal.classList.add('active');
+        if (newUsernameInput) newUsernameInput.focus();
+      }
+    });
+  }
+
+  if (btnCloseCreateUserModal) btnCloseCreateUserModal.addEventListener('click', () => createUserModal.classList.remove('active'));
+  if (btnCancelCreateUser) btnCancelCreateUser.addEventListener('click', () => createUserModal.classList.remove('active'));
+
+  if (btnSubmitCreateUser) {
+    btnSubmitCreateUser.addEventListener('click', async () => {
+      const username = newUsernameInput ? newUsernameInput.value.trim().toLowerCase() : '';
+      const fullName = newFullNameInput ? newFullNameInput.value.trim() : '';
+      const email = newEmailInput ? newEmailInput.value.trim() : '';
+      const password = newUserPasswordInput ? newUserPasswordInput.value.trim() : '';
+      const role = newUserRoleSelect ? newUserRoleSelect.value : 'Support';
+
+      if (!username || username.length < 3) {
+        showToast('Tên đăng nhập phải có ít nhất 3 ký tự!', 'error');
+        if (newUsernameInput) newUsernameInput.focus();
+        return;
+      }
+
+      if (!/^[a-zA-Z0-9_\-\.]+$/.test(username)) {
+        showToast('Tên đăng nhập chỉ chứa chữ cái, số, gạch dưới (_) hoặc gạch nối (-)!', 'error');
+        if (newUsernameInput) newUsernameInput.focus();
+        return;
+      }
+
+      if (!password || password.length < 6) {
+        showToast('Mật khẩu phải có tối thiểu từ 6 ký tự trở lên!', 'error');
+        if (newUserPasswordInput) newUserPasswordInput.focus();
+        return;
+      }
+
+      btnSubmitCreateUser.disabled = true;
+      btnSubmitCreateUser.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo...';
+
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: getAdminHeaders(),
+          body: JSON.stringify({
+            username,
+            fullName,
+            email,
+            password,
+            role,
+            status: 'ACTIVE'
+          })
+        });
+        const data = await res.json();
+
+        if (res.status === 201 && data.success) {
+          showToast(data.message || '✓ Đã tạo tài khoản mới thành công!', 'success');
+          createUserModal.classList.remove('active');
+          loadAdminUsers();
+        } else {
+          showToast(data.message || 'Lỗi khi tạo tài khoản!', 'error');
+        }
+      } catch (e) {
+        showToast('Lỗi: ' + e.message, 'error');
+      } finally {
+        btnSubmitCreateUser.disabled = false;
+        btnSubmitCreateUser.innerHTML = '<i class="fa-solid fa-plus"></i> Tạo Tài Khoản';
+      }
     });
   }
 

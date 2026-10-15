@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Init theme on load
   initTheme();
 
-  // ── ADMIN NAVBAR REVEAL (DOCS ACCESS CONTROL) ──────────────
+  // ── ADMIN NAVBAR REVEAL & DYNAMIC LABELS (RBAC) ───────────
   async function checkAdminSessionLookup() {
     const token = localStorage.getItem('ltv_admin_session_token');
     const navDocsLink = document.getElementById('navDocsLink');
@@ -338,11 +338,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const navAdminRoleBadge = document.getElementById('navAdminRoleBadge');
     const btnNavLogout = document.getElementById('btnNavLogout');
     const mobileNavDocsLink = document.getElementById('mobileNavDocsLink');
+    const navAdminLink = document.getElementById('navAdminLink');
+    const mobileNavAdminLink = document.getElementById('mobileNavAdminLink');
+    const footerAdminLink = document.getElementById('footerAdminLink');
+    const mobileDrawerProfile = document.getElementById('mobileDrawerProfile');
+    const mobileDrawerAdminName = document.getElementById('mobileDrawerAdminName');
+    const mobileDrawerRoleBadge = document.getElementById('mobileDrawerRoleBadge');
+    const btnMobileDrawerLogout = document.getElementById('btnMobileDrawerLogout');
 
-    if (!token) {
+    const resetToUnauthenticated = () => {
+      if (navAdminLink) navAdminLink.innerHTML = '<i class="fa-solid fa-key"></i> Đăng Nhập Quản Trị';
+      if (mobileNavAdminLink) mobileNavAdminLink.innerHTML = '<i class="fa-solid fa-key"></i> Đăng Nhập Quản Trị';
+      if (footerAdminLink) footerAdminLink.textContent = 'Đăng Nhập Quản Trị';
       if (navDocsLink) navDocsLink.style.display = 'none';
       if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'none';
       if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
+      if (mobileDrawerProfile) mobileDrawerProfile.style.display = 'none';
+    };
+
+    if (!token) {
+      resetToUnauthenticated();
       return;
     }
 
@@ -354,9 +369,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.valid || data.authenticated) {
         const u = data.user || {};
         const role = u.role || 'SuperAdmin';
+        
+        // Cập nhật nhãn nút /admin động theo trạng thái đăng nhập & vai trò
+        if (navAdminLink) navAdminLink.innerHTML = `<i class="fa-solid fa-gauge"></i> Bảng Điều Khiển [${role}]`;
+        if (mobileNavAdminLink) mobileNavAdminLink.innerHTML = `<i class="fa-solid fa-gauge"></i> Bảng Điều Khiển [${role}]`;
+        if (footerAdminLink) footerAdminLink.textContent = `Bảng Điều Khiển [${role}]`;
+
         if (navDocsLink) navDocsLink.style.display = 'inline-flex';
         if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'flex';
         document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'inline');
+
+        // Navbar Profile Pill
         if (navAdminProfilePill) {
           navAdminProfilePill.style.display = 'inline-flex';
           if (navAdminName) navAdminName.textContent = u.username || data.username || 'Admin';
@@ -368,35 +391,47 @@ document.addEventListener('DOMContentLoaded', () => {
             );
           }
         }
+
+        // Mobile Drawer Profile Pill
+        if (mobileDrawerProfile) {
+          mobileDrawerProfile.style.display = 'flex';
+          if (mobileDrawerAdminName) mobileDrawerAdminName.textContent = u.username || data.username || 'Admin';
+          if (mobileDrawerRoleBadge) {
+            mobileDrawerRoleBadge.textContent = role;
+            mobileDrawerRoleBadge.className = 'role-badge ' + (
+              role === 'SuperAdmin' ? 'role-badge-superadmin' :
+              role === 'Support' ? 'role-badge-support' : 'role-badge-auditor'
+            );
+          }
+        }
       } else {
         localStorage.removeItem('ltv_admin_session_token');
-        if (navDocsLink) navDocsLink.style.display = 'none';
-        if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'none';
-        if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
+        resetToUnauthenticated();
       }
     } catch (e) {
       // Offline
     }
 
-    if (btnNavLogout) {
-      btnNavLogout.onclick = async () => {
-        const curToken = localStorage.getItem('ltv_admin_session_token');
-        if (curToken) {
-          try {
-            await fetch('/api/admin/logout', {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${curToken}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({})
-            });
-          } catch (e) {}
-        }
-        localStorage.removeItem('ltv_admin_session_token');
-        localStorage.removeItem('ltv_admin_role');
-        localStorage.removeItem('ltv_admin_permissions');
-        localStorage.removeItem('ltv_admin_secret');
-        window.location.reload();
-      };
-    }
+    const doLogout = async () => {
+      const curToken = localStorage.getItem('ltv_admin_session_token');
+      if (curToken) {
+        try {
+          await fetch('/api/admin/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${curToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+          });
+        } catch (e) {}
+      }
+      localStorage.removeItem('ltv_admin_session_token');
+      localStorage.removeItem('ltv_admin_role');
+      localStorage.removeItem('ltv_admin_permissions');
+      localStorage.removeItem('ltv_admin_secret');
+      window.location.reload();
+    };
+
+    if (btnNavLogout) btnNavLogout.onclick = doLogout;
+    if (btnMobileDrawerLogout) btnMobileDrawerLogout.onclick = doLogout;
   }
 
   

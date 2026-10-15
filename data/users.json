@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "passwordHash": "220b3ad4523152494a3639e7f96d1e40:73c06b10df60d167d0d3b7e0694cd434b4e355a3cec9d8d2d570b97282db2b41",
+    "fullName": "Quản Trị Viên Trưởng (SuperAdmin)",
+    "email": "admin@ltvstudio.com",
+    "role": "SuperAdmin",
+    "status": "ACTIVE",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z",
+    "lastLoginAt": "2026-10-15T13:25:45.276Z"
+  },
+  {
+    "id": 2,
+    "username": "support",
+    "passwordHash": "8b4ec3b1813089a52e42d2d8281e8e6a:3961dcbeb57b57440088c79ac1316f8321e0b086da6d013ff8ec75f8df91b39d",
+    "fullName": "Chuyên Viên CSKH & Kỹ Thuật (Support)",
+    "email": "support@ltvstudio.com",
+    "role": "Support",
+    "status": "ACTIVE",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z",
+    "lastLoginAt": "2026-10-15T13:25:45.280Z"
+  },
+  {
+    "id": 3,
+    "username": "auditor",
+    "passwordHash": "92d823c3dc443b539d98abfb42742d10:534a2fe67fdf42b502c206068a74428e8492244ddfc62912a4f7e22bc9993793",
+    "fullName": "Kiểm Toán & Kế Toán Hệ Thống (Auditor)",
+    "email": "auditor@ltvstudio.com",
+    "role": "Auditor",
+    "status": "ACTIVE",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z",
+    "lastLoginAt": "2026-10-15T13:25:45.283Z"
+  }
+]

@@ -22,6 +22,7 @@ def verify_ui_ux_integrity():
         ('btnMobileNav', r'id=["\']btnMobileNav["\']'),
         ('mobileDrawerOverlay', r'id=["\']mobileDrawerOverlay["\']'),
         ('mobileDrawerPane', r'id=["\']mobileDrawerPane["\']'),
+        ('mobileDrawerProfile', r'id=["\']mobileDrawerProfile["\']'),
     ]
 
     all_html_passed = True

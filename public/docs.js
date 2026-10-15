@@ -150,6 +150,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (docsProtectedContent) docsProtectedContent.style.display = 'none';
     document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'none');
     if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
+
+    const navAdminLink = document.getElementById('navAdminLink');
+    const mobileNavAdminLink = document.getElementById('mobileNavAdminLink');
+    const footerAdminLink = document.getElementById('footerAdminLink');
+    const mobileDrawerProfile = document.getElementById('mobileDrawerProfile');
+    if (navAdminLink) navAdminLink.innerHTML = '<i class="fa-solid fa-key"></i> Đăng Nhập Quản Trị';
+    if (mobileNavAdminLink) mobileNavAdminLink.innerHTML = '<i class="fa-solid fa-key"></i> Đăng Nhập Quản Trị';
+    if (footerAdminLink) footerAdminLink.textContent = 'Đăng Nhập Quản Trị';
+    if (mobileDrawerProfile) mobileDrawerProfile.style.display = 'none';
   }
 
   function unlockDocs(username, role = 'SuperAdmin') {
@@ -157,6 +166,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (docsProtectedContent) docsProtectedContent.style.display = 'block';
     document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'inline');
     if (docsSessionAdminName) docsSessionAdminName.textContent = username;
+
+    const navAdminLink = document.getElementById('navAdminLink');
+    const mobileNavAdminLink = document.getElementById('mobileNavAdminLink');
+    const footerAdminLink = document.getElementById('footerAdminLink');
+    const mobileDrawerProfile = document.getElementById('mobileDrawerProfile');
+    const mobileDrawerAdminName = document.getElementById('mobileDrawerAdminName');
+    const mobileDrawerRoleBadge = document.getElementById('mobileDrawerRoleBadge');
+    const btnMobileDrawerLogout = document.getElementById('btnMobileDrawerLogout');
+
+    if (navAdminLink) navAdminLink.innerHTML = `<i class="fa-solid fa-gauge"></i> Bảng Điều Khiển [${role}]`;
+    if (mobileNavAdminLink) mobileNavAdminLink.innerHTML = `<i class="fa-solid fa-gauge"></i> Bảng Điều Khiển [${role}]`;
+    if (footerAdminLink) footerAdminLink.textContent = `Bảng Điều Khiển [${role}]`;
+
     if (navAdminProfilePill) {
       navAdminProfilePill.style.display = 'inline-flex';
       if (navAdminName) navAdminName.textContent = username;
@@ -168,6 +190,19 @@ document.addEventListener('DOMContentLoaded', () => {
         );
       }
     }
+
+    if (mobileDrawerProfile) {
+      mobileDrawerProfile.style.display = 'flex';
+      if (mobileDrawerAdminName) mobileDrawerAdminName.textContent = username;
+      if (mobileDrawerRoleBadge) {
+        mobileDrawerRoleBadge.textContent = role;
+        mobileDrawerRoleBadge.className = 'role-badge ' + (
+          role === 'SuperAdmin' ? 'role-badge-superadmin' :
+          role === 'Support' ? 'role-badge-support' : 'role-badge-auditor'
+        );
+      }
+    }
+    if (btnMobileDrawerLogout) btnMobileDrawerLogout.onclick = handleDocsLogout;
   }
 
   // ── INLINE ADMIN LOGIN SUBMISSION ──────────────────────────

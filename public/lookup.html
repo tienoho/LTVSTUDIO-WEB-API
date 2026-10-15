@@ -129,8 +129,8 @@
         <a href="/docs" class="nav-link" id="navDocsLink" style="display: none;">
           <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API <span class="admin-badge-tiny">Admin</span>
         </a>
-        <a href="/admin" class="nav-link admin-nav-btn">
-          <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
+        <a href="/admin" class="nav-link admin-nav-btn" id="navAdminLink">
+          <i class="fa-solid fa-key"></i> Đăng Nhập Quản Trị
         </a>
       </nav>
 
@@ -358,7 +358,7 @@
       <div class="footer-links">
         <a href="/" class="footer-link">Trang Chủ &amp; Tải Về</a>
         <a href="/lookup" class="footer-link">Tra Cứu Bản Quyền</a>
-        <a href="/admin" class="footer-link">Quản Trị Hệ Thống</a>
+        <a href="/admin" class="footer-link" id="footerAdminLink">Đăng Nhập Quản Trị</a>
         <a href="/docs" class="footer-link footer-docs-link" style="display: none;">Tài Liệu API</a>
       </div>
       <div class="footer-copy-col">
@@ -386,6 +386,23 @@
       </div>
       <button class="modal-close" id="btnCloseMobileDrawer">&times;</button>
     </div>
+
+    <!-- Mobile Admin Profile Pill -->
+    <div class="mobile-drawer-profile" id="mobileDrawerProfile" style="display: none;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div class="admin-avatar-box" style="width: 36px; height: 36px; font-size: 0.95rem;">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <div>
+          <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);" id="mobileDrawerAdminName">Admin</div>
+          <span class="role-badge role-badge-superadmin" id="mobileDrawerRoleBadge" style="font-size: 0.65rem; padding: 0.1rem 0.4rem;">SuperAdmin</span>
+        </div>
+      </div>
+      <button class="btn-pill-logout" id="btnMobileDrawerLogout" title="Đăng xuất quản trị viên" style="width: 32px; height: 32px; border-radius: 8px;">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </button>
+    </div>
+
     <div class="mobile-drawer-links">
       <a href="/" class="mobile-drawer-link">
         <i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về
@@ -396,8 +413,8 @@
       <a href="/docs" class="mobile-drawer-link" id="mobileNavDocsLink" style="display: none;">
         <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
       </a>
-      <a href="/admin" class="mobile-drawer-link">
-        <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
+      <a href="/admin" class="mobile-drawer-link" id="mobileNavAdminLink">
+        <i class="fa-solid fa-key"></i> Đăng Nhập Quản Trị
       </a>
     </div>
   </div>

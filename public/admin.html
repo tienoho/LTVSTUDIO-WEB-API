@@ -148,6 +148,23 @@
       </div>
       <button class="mobile-drawer-close" id="btnCloseMobileDrawer">&times;</button>
     </div>
+
+    <!-- Mobile Admin Profile Pill -->
+    <div class="mobile-drawer-profile" id="mobileDrawerProfile" style="display: none;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div class="admin-avatar-box" style="width: 36px; height: 36px; font-size: 0.95rem;">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <div>
+          <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);" id="mobileDrawerAdminName">Admin</div>
+          <span class="role-badge role-badge-superadmin" id="mobileDrawerRoleBadge" style="font-size: 0.65rem; padding: 0.1rem 0.4rem;">SuperAdmin</span>
+        </div>
+      </div>
+      <button class="btn-pill-logout" id="btnMobileDrawerLogout" title="Đăng xuất quản trị viên" style="width: 32px; height: 32px; border-radius: 8px;">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </button>
+    </div>
+
     <div class="mobile-drawer-links">
       <a href="/" class="mobile-drawer-link"><i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về</a>
       <a href="/lookup" class="mobile-drawer-link"><i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền</a>
@@ -257,6 +274,9 @@
             <button class="btn btn-primary" id="btnOpenCreateModal">
               <i class="fa-solid fa-plus"></i> Phát Hành Key Mới
             </button>
+            <button class="btn btn-outline" id="btnOpenChangePasswordModal" title="Đổi mật khẩu tài khoản">
+              <i class="fa-solid fa-key"></i> Đổi Mật Khẩu
+            </button>
             <button class="btn btn-outline-danger" id="btnAdminLogout" title="Đăng xuất khỏi tài khoản Quản trị">
               <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng Xuất
             </button>
@@ -328,6 +348,9 @@
           </button>
           <button class="subtab-btn" data-subtab="subtab-version">
             <i class="fa-solid fa-cloud-arrow-up"></i> Cấu Hình Cập Nhật (OTA)
+          </button>
+          <button class="subtab-btn" data-subtab="subtab-users" id="tabUsersBtn" style="display: none;">
+            <i class="fa-solid fa-users-gear"></i> Quản Lý Tài Khoản
           </button>
           <button class="subtab-btn" data-subtab="subtab-docs">
             <i class="fa-solid fa-book-bookmark"></i> Tài Liệu Tích Hợp API
@@ -592,6 +615,51 @@
             </div>
           </div>
         </div>
+
+        <!-- SUBTAB 4: USER MANAGEMENT (SUPERADMIN ONLY) -->
+        <div class="subtab-pane" id="subtab-users" style="display: none;">
+          <div class="table-controls" style="flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #f8fafc;">
+                <i class="fa-solid fa-users-gear text-cyan"></i> Danh Sách Tài Khoản Quản Trị
+              </h3>
+              <span class="badge" id="usersTotalBadge" style="background: rgba(0,242,254,0.12); color: #00f2fe; border: 1px solid rgba(0,242,254,0.3); font-size: 0.75rem;">
+                -- Tài Khoản
+              </span>
+            </div>
+            <div class="filter-controls" style="margin-left: auto;">
+              <button class="btn btn-primary" id="btnOpenCreateUserModal">
+                <i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới
+              </button>
+              <button class="btn btn-outline" id="btnReloadUsers">
+                <i class="fa-solid fa-rotate-right"></i> Làm Mới
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="modern-table">
+              <thead>
+                <tr>
+                  <th>TÀI KHOẢN</th>
+                  <th>HỌ VÀ TÊN</th>
+                  <th>EMAIL</th>
+                  <th>VAI TRÒ (ROLE)</th>
+                  <th>TRẠNG THÁI</th>
+                  <th>ĐĂNG NHẬP CUỐI</th>
+                  <th style="text-align: right;">THAO TÁC</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Đang tải danh sách người dùng...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -827,6 +895,127 @@
             <div class="result-item"><span class="label">Thời gian hoạt động (Uptime):</span> <strong id="healthUptime">--</strong></div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGE PASSWORD -->
+  <div class="modal-overlay" id="changePasswordModal">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-key text-cyan"></i> Đổi Mật Khẩu Quản Trị</h3>
+        <button class="modal-close" id="btnCloseChangePasswordModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="changePasswordForm" onsubmit="return false;">
+          <input type="hidden" id="changePasswordTargetUser" value="">
+
+          <div class="form-group" id="changePasswordUserGroup">
+            <label>Tài Khoản Đổi Mật Khẩu</label>
+            <div style="display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0.9rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+              <i class="fa-solid fa-user-shield text-cyan"></i>
+              <strong id="changePasswordUsernameDisplay" style="color: #f8fafc; font-size: 0.95rem;">admin</strong>
+              <span class="role-badge role-badge-superadmin" id="changePasswordRoleDisplay" style="font-size: 0.65rem; margin-left: auto;">SuperAdmin</span>
+            </div>
+          </div>
+
+          <div class="form-group" id="currentPasswordGroup">
+            <label>Mật Khẩu Hiện Tại <span class="text-rose">*</span></label>
+            <div class="password-input-wrapper">
+              <input type="password" id="currentPasswordInput" placeholder="Nhập mật khẩu đang sử dụng..." autocomplete="current-password">
+              <button type="button" class="btn-toggle-password" id="btnToggleCurrentPassword" title="Hiện/ẩn mật khẩu">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Mật Khẩu Mới <span class="text-rose">*</span></label>
+            <div class="password-input-wrapper">
+              <input type="password" id="newPasswordInput" placeholder="Tối thiểu từ 6 ký tự..." autocomplete="new-password">
+              <button type="button" class="btn-toggle-password" id="btnToggleNewPassword" title="Hiện/ẩn mật khẩu">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+              Mật khẩu sẽ được mã hóa chuẩn SHA-256 kèm muối bảo mật (Salt) an toàn.
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label>Xác Nhận Mật Khẩu Mới <span class="text-rose">*</span></label>
+            <div class="password-input-wrapper">
+              <input type="password" id="confirmPasswordInput" placeholder="Nhập lại mật khẩu mới..." autocomplete="new-password">
+              <button type="button" class="btn-toggle-password" id="btnToggleConfirmPassword" title="Hiện/ẩn mật khẩu">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="modal-footer" style="padding-top: 1rem; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08);">
+            <button type="button" class="btn btn-outline" id="btnCancelChangePassword">Hủy Bỏ</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmitChangePassword">
+              <i class="fa-solid fa-shield-check"></i> Cập Nhật Mật Khẩu
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE USER -->
+  <div class="modal-overlay" id="createUserModal">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus text-cyan"></i> Thêm Tài Khoản Quản Trị Mới</h3>
+        <button class="modal-close" id="btnCloseCreateUserModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="createUserForm" onsubmit="return false;">
+          <div class="form-group">
+            <label>Tên Đăng Nhập (Username) <span class="text-rose">*</span></label>
+            <input type="text" id="newUsernameInput" placeholder="VD: support_hn, auditor_hcm..." required autocomplete="off">
+            <span style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+              3-32 ký tự, viết liền không dấu, chữ cái, số hoặc gạch dưới (_).
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label>Họ Và Tên</label>
+            <input type="text" id="newFullNameInput" placeholder="VD: Nguyễn Văn A (Hỗ Trợ Khách Hàng)">
+          </div>
+
+          <div class="form-group">
+            <label>Email Liên Hệ</label>
+            <input type="email" id="newEmailInput" placeholder="VD: support@ltvstudio.vn">
+          </div>
+
+          <div class="form-group">
+            <label>Mật Khẩu Ban Đầu <span class="text-rose">*</span></label>
+            <div class="password-input-wrapper">
+              <input type="password" id="newUserPasswordInput" placeholder="Tối thiểu từ 6 ký tự..." required autocomplete="new-password">
+              <button type="button" class="btn-toggle-password" id="btnToggleNewUserPassword" title="Hiện/ẩn mật khẩu">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Vai Trò Quản Trị (Role) <span class="text-rose">*</span></label>
+            <select id="newUserRoleSelect" class="custom-select">
+              <option value="Support" selected>Support - Hỗ Trợ Khách Hàng (Tạo key, Reset HWID, Gia hạn)</option>
+              <option value="Auditor">Auditor - Kiểm Toán Viên (Chỉ xem, xuất Excel báo cáo)</option>
+              <option value="SuperAdmin">SuperAdmin - Quản Trị Cấp Cao (Toàn quyền hệ thống & Cập nhật OTA)</option>
+            </select>
+          </div>
+
+          <div class="modal-footer" style="padding-top: 1rem; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08);">
+            <button type="button" class="btn btn-outline" id="btnCancelCreateUser">Hủy Bỏ</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmitCreateUser">
+              <i class="fa-solid fa-plus"></i> Tạo Tài Khoản
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

@@ -1462,5 +1462,56 @@
     "expiresAt": "LIFETIME",
     "lastVerifiedAt": "2026-10-15T12:18:31.990Z",
     "activatedAt": "2026-10-15T12:18:31.961Z"
+  },
+  {
+    "key": "LTV-PRO-3432B9-CF329D-D25D69",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T12:52:06.750Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T12:52:06.782Z",
+    "activatedAt": "2026-10-15T12:52:06.756Z"
+  },
+  {
+    "key": "LTV-PRO-065AD3-4B3F0A-2283D2",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T12:56:12.961Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-PRO-CA92FD-4A0E16-CB3336",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T12:56:38.914Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T12:56:38.951Z",
+    "activatedAt": "2026-10-15T12:56:38.921Z"
+  },
+  {
+    "key": "LTV-PRO-1CCB63-84BA65-31E48A",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T13:23:07.375Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T13:23:07.405Z",
+    "activatedAt": "2026-10-15T13:23:07.380Z"
   }
 ]

@@ -144,3 +144,45 @@ export interface HealthResponse {
     activeLicenses: number;
   };
 }
+
+export type UserStatus = 'ACTIVE' | 'LOCKED' | 'SUSPENDED';
+
+export interface User {
+  id?: number;
+  username: string;
+  passwordHash: string; // "salt:hash"
+  fullName?: string;
+  email?: string;
+  role: AdminRole;
+  status: UserStatus;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string | null;
+}
+
+export interface UserDTO {
+  id?: number;
+  username: string;
+  fullName?: string;
+  email?: string;
+  role: AdminRole;
+  status: UserStatus;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string | null;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword?: string;
+  newPassword?: string;
+  targetUsername?: string;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  fullName?: string;
+  email?: string;
+  role: AdminRole;
+}
+
