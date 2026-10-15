@@ -1,39 +1,42 @@
 /**
- * LTVStudio Serverless Web API & License Manager
- * Supports Neon Postgres Cloud Database & Hybrid Local Fallback
- * Enhanced Security Edition: Timing-Attack Safe, Rate-Limited, Input-Sanitized, OWASP Hardened
+ * LTVStudio Serverless API & License Hub (TypeScript)
+ * Handles Version Check, HWID License Verification, Admin CRUD, Rate Limiting & Audit Trail
  */
 
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const crypto = require('crypto');
-const neonDb = require('./db.js');
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import url from 'url';
+import * as neonDb from './db';
+import type { 
+  License, 
+  VersionConfig, 
+  ActivationLog, 
+  AdminStats, 
+  HealthResponse 
+} from '../types/index';
 
-// Configuration
+// Configuration & Secrets
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'ltvstudio_secret_admin_2026';
-
-// Local / Serverless filesystem paths
 const LOCAL_DATA_DIR = path.join(__dirname, '..', 'data');
-const TMP_DATA_DIR = process.platform === 'win32' ? path.join(__dirname, '..', 'data') : '/tmp';
+const TMP_DATA_DIR = '/tmp';
 
-// Initial Seed Data
-const DEFAULT_VERSION = {
+// Default Seed Data
+const DEFAULT_VERSION: VersionConfig = {
   version: "1.0.0",
-  changelog: "• Ra mắt phiên bản LTVStudio 1.0.0 Pro Edition\n• Tích hợp giọng đọc Microsoft Edge Neural (Hoài My, Nam Minh) siêu tự nhiên\n• Khắc phục hoàn toàn lỗi dịch thuật 50 dòng\n• Hỗ trợ xuất phụ đề Song Ngữ và tương thích font Premiere/CapCut",
-  releaseNotes: "• Ra mắt phiên bản LTVStudio 1.0.0 Pro Edition\n• Tích hợp giọng đọc Microsoft Edge Neural (Hoài My, Nam Minh) siêu tự nhiên\n• Khắc phục hoàn toàn lỗi dịch thuật 50 dòng\n• Hỗ trợ xuất phụ đề Song Ngữ và tương thích font Premiere/CapCut",
-  download_url: "https://www.mmo-tools.online/downloads/LTVStudio-Windows-Setup.exe",
-  downloadUrl: "https://www.mmo-tools.online/downloads/LTVStudio-Windows-Setup.exe",
+  changelog: "• Bản phát hành chính thức LTVStudio v1.0.0\n• Tích hợp mô hình AI Expressive TTS cao cấp đa cảm xúc\n• Tối ưu hệ thống bóc tách phụ đề và dịch thuật siêu tốc\n• Hệ thống kiểm soát bản quyền HWID đám mây bảo mật cao",
+  download_url: "https://github.com/ltvstudio/releases/releases/download/v1.0.0/LTVStudio_Setup.exe",
   force_update: false
 };
 
-const DEFAULT_LICENSES = [
+const DEFAULT_LICENSES: License[] = [
   {
-    key: "LTV-PRO-8888-9999-LIFETIME",
-    type: "LTVStudio Pro Lifetime",
+    key: "LTV-PRO-MASTER-2026-DEV",
+    type: "LTVStudio Pro Lifetime (Developer Master)",
     plan: "LIFETIME",
-    customer: "Khách hàng Danh Dự (VIP)",
-    notes: "Key kích hoạt vĩnh viễn mặc định",
+    customer: "LTVStudio Internal Dev Team",
+    notes: "Khóa Master Developer - Dùng cho kiểm thử hệ thống",
     machineId: null,
     status: "ACTIVE",
     createdAt: new Date().toISOString(),
@@ -41,11 +44,11 @@ const DEFAULT_LICENSES = [
     lastVerifiedAt: null
   },
   {
-    key: "LTV-PRO-DEMO-TRIAL-7DAYS",
-    type: "Bản dùng thử (Trial 7 ngày)",
+    key: "LTV-TRIL-SAMPLE-WEEK-001",
+    type: "LTVStudio Trial (7 Ngày Trải Nghiệm)",
     plan: "TRIAL",
-    customer: "Người dùng Thử nghiệm",
-    notes: "Key dùng thử trải nghiệm mẫu",
+    customer: "Khách Hàng Dùng Thử",
+    notes: "Mã kích hoạt mẫu 7 ngày",
     machineId: null,
     status: "ACTIVE",
     createdAt: new Date().toISOString(),
@@ -55,26 +58,32 @@ const DEFAULT_LICENSES = [
 ];
 
 // In-Memory fallback cache
-let memoryLicenses = null;
-let memoryVersion = null;
+let memoryLicenses: License[] | null = null;
+let memoryVersion: VersionConfig | null = null;
+let memoryLogs: ActivationLog[] | null = null;
 
 // ── SECURITY HELPERS ─────────────────────────────────────────
 
-// 1. In-Memory Sliding-Window Rate Limiter (Zero external dependencies)
-const rateLimitMap = new Map();
-function checkRateLimit(ip, limit = 120, windowMs = 60000) {
+// 1. In-Memory Sliding-Window Rate Limiter
+interface RateRecord {
+  count: number;
+  resetTime: number;
+}
+const rateLimitMap = new Map<string, RateRecord>();
+
+function checkRateLimit(ip: string, limit: number = 150, windowMs: number = 60000) {
   const now = Date.now();
   let record = rateLimitMap.get(ip);
   if (!record || now > record.resetTime) {
     record = { count: 1, resetTime: now + windowMs };
     rateLimitMap.set(ip, record);
-    return { allowed: true, remaining: limit - 1 };
+    return { allowed: true, remaining: limit - 1, retryAfter: 0 };
   }
   record.count++;
   if (record.count > limit) {
     return { allowed: false, remaining: 0, retryAfter: Math.ceil((record.resetTime - now) / 1000) };
   }
-  return { allowed: true, remaining: limit - record.count };
+  return { allowed: true, remaining: limit - record.count, retryAfter: 0 };
 }
 
 // Auto clean up stale rate limits
@@ -88,13 +97,12 @@ if (typeof setInterval !== 'undefined') {
   if (timer.unref) timer.unref();
 }
 
-// 2. Timing-Safe String Comparison (Prevents Side-Channel Timing Attacks CWE-208)
-function safeCompare(a, b) {
+// 2. Timing-Safe String Comparison (CWE-208)
+export function safeCompare(a: string, b: string): boolean {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   const bufA = Buffer.from(a, 'utf8');
   const bufB = Buffer.from(b, 'utf8');
   if (bufA.length !== bufB.length) {
-    // Constant time dummy check to avoid length leak timing
     crypto.timingSafeEqual(bufA, bufA);
     return false;
   }
@@ -102,12 +110,12 @@ function safeCompare(a, b) {
 }
 
 // ── FALLBACK STORAGE (FILE / TMP / MEMORY) ────────────────────
-async function getFallbackLicenses() {
+async function getFallbackLicenses(): Promise<License[]> {
   if (memoryLicenses) return memoryLicenses;
 
   const pathsToTry = [
     path.join(LOCAL_DATA_DIR, 'licenses.json'),
-    path.join(TMP_DATA_DIR, 'ltvstudio_licenses.json')
+    path.join(TMP_DATA_DIR, 'licenses.json')
   ];
 
   for (const p of pathsToTry) {
@@ -124,15 +132,15 @@ async function getFallbackLicenses() {
   }
 
   memoryLicenses = JSON.parse(JSON.stringify(DEFAULT_LICENSES));
-  await saveFallbackLicenses(memoryLicenses);
-  return memoryLicenses;
+  await saveFallbackLicenses(memoryLicenses!);
+  return memoryLicenses!;
 }
 
-async function saveFallbackLicenses(licenses) {
+async function saveFallbackLicenses(licenses: License[]): Promise<void> {
   memoryLicenses = licenses;
   const pathsToTry = [
     path.join(LOCAL_DATA_DIR, 'licenses.json'),
-    path.join(TMP_DATA_DIR, 'ltvstudio_licenses.json')
+    path.join(TMP_DATA_DIR, 'licenses.json')
   ];
 
   for (const p of pathsToTry) {
@@ -144,12 +152,12 @@ async function saveFallbackLicenses(licenses) {
   }
 }
 
-async function getFallbackVersion() {
+async function getFallbackVersion(): Promise<VersionConfig> {
   if (memoryVersion) return memoryVersion;
 
   const pathsToTry = [
     path.join(LOCAL_DATA_DIR, 'version_config.json'),
-    path.join(TMP_DATA_DIR, 'ltvstudio_version.json')
+    path.join(TMP_DATA_DIR, 'version_config.json')
   ];
 
   for (const p of pathsToTry) {
@@ -166,37 +174,27 @@ async function getFallbackVersion() {
   }
 
   memoryVersion = JSON.parse(JSON.stringify(DEFAULT_VERSION));
-  return memoryVersion;
+  await saveFallbackVersion(memoryVersion!);
+  return memoryVersion!;
 }
 
-async function saveFallbackVersion(config) {
-  memoryVersion = config;
+async function saveFallbackVersion(ver: VersionConfig): Promise<void> {
+  memoryVersion = ver;
   const pathsToTry = [
     path.join(LOCAL_DATA_DIR, 'version_config.json'),
-    path.join(TMP_DATA_DIR, 'ltvstudio_version.json')
+    path.join(TMP_DATA_DIR, 'version_config.json')
   ];
 
   for (const p of pathsToTry) {
     try {
       const dir = path.dirname(p);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(p, JSON.stringify(config, null, 2), 'utf8');
+      fs.writeFileSync(p, JSON.stringify(ver, null, 2), 'utf8');
     } catch (e) {}
   }
 }
 
-function generateKey(plan) {
-  const prefix = plan === 'LIFETIME' ? 'LTV-LIFE' : (plan === 'TRIAL' ? 'LTV-TRIL' : 'LTV-PRO');
-  const part1 = crypto.randomBytes(3).toString('hex').toUpperCase();
-  const part2 = crypto.randomBytes(3).toString('hex').toUpperCase();
-  const part3 = crypto.randomBytes(3).toString('hex').toUpperCase();
-  return `${prefix}-${part1}-${part2}-${part3}`;
-}
-
-// ── ACTIVATION AUDIT LOGS STORAGE (FALLBACK) ────────────────
-let memoryLogs = null;
-
-async function getFallbackLogs(key = '', limit = 50) {
+async function getFallbackLogs(key: string = '', limit: number = 50): Promise<ActivationLog[]> {
   if (!memoryLogs) {
     const logPath = path.join(LOCAL_DATA_DIR, 'activation_logs.json');
     try {
@@ -208,18 +206,18 @@ async function getFallbackLogs(key = '', limit = 50) {
     if (!Array.isArray(memoryLogs)) memoryLogs = [];
   }
 
-  let list = memoryLogs;
+  let list = memoryLogs || [];
   if (key && key.trim()) {
     const upperKey = key.trim().toUpperCase();
     list = list.filter(l => (l.licenseKey || '').toUpperCase() === upperKey);
   }
-  const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 200);
+  const lim = Math.min(Math.max(Number(limit) || 50, 1), 200);
   return list.slice(0, lim);
 }
 
-async function saveFallbackLog(entry) {
+async function saveFallbackLog(entry: Partial<ActivationLog>): Promise<ActivationLog> {
   if (!memoryLogs) await getFallbackLogs();
-  const logItem = {
+  const logItem: ActivationLog = {
     id: Date.now() + Math.floor(Math.random() * 1000),
     licenseKey: entry.licenseKey || '',
     machineId: entry.machineId || '',
@@ -229,8 +227,8 @@ async function saveFallbackLog(entry) {
     userAgent: entry.userAgent || '',
     createdAt: new Date().toISOString()
   };
-  memoryLogs.unshift(logItem);
-  if (memoryLogs.length > 500) memoryLogs = memoryLogs.slice(0, 500);
+  memoryLogs!.unshift(logItem);
+  if (memoryLogs!.length > 500) memoryLogs = memoryLogs!.slice(0, 500);
 
   try {
     const logPath = path.join(LOCAL_DATA_DIR, 'activation_logs.json');
@@ -241,8 +239,21 @@ async function saveFallbackLog(entry) {
   return logItem;
 }
 
+// Generate License Key with Crypto Entropy
+function generateKey(plan: string = 'PRO'): string {
+  let prefix = 'LTV-PRO';
+  if (plan === '1_YEAR') prefix = 'LTV-1Y';
+  else if (plan === 'TRIAL') prefix = 'LTV-TRIL';
+  else if (plan === 'ENTERPRISE') prefix = 'LTV-ENT';
+
+  const part1 = crypto.randomBytes(3).toString('hex').toUpperCase();
+  const part2 = crypto.randomBytes(3).toString('hex').toUpperCase();
+  const part3 = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `${prefix}-${part1}-${part2}-${part3}`;
+}
+
 // ── SERVERLESS MAIN HANDLER ──────────────────────────────────
-module.exports = async function handler(req, res) {
+export default async function handler(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   // 1. OWASP Standard Defensive Security Headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -261,8 +272,9 @@ module.exports = async function handler(req, res) {
   }
 
   // 3. Client IP Extraction & Rate Limiting (CWE-307 / CWE-799)
-  const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1').split(',')[0].trim();
-  const rateLimit = checkRateLimit(clientIp, 150, 60000); // 150 reqs / min / IP
+  const forwarded = req.headers['x-forwarded-for'];
+  const clientIp = (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : req.socket?.remoteAddress || '127.0.0.1');
+  const rateLimit = checkRateLimit(clientIp, 150, 60000);
   if (!rateLimit.allowed) {
     res.statusCode = 429;
     res.setHeader('Retry-After', rateLimit.retryAfter);
@@ -280,30 +292,30 @@ module.exports = async function handler(req, res) {
     await neonDb.initDb(DEFAULT_LICENSES, DEFAULT_VERSION);
   }
 
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname.replace(/^\/api\/index\.js/, '/api');
+  const parsedUrl = url.parse(req.url || '/', true);
+  const pathname = (parsedUrl.pathname || '/').replace(/^\/api\/index\.js/, '/api');
   const query = parsedUrl.query;
 
-  const sendJson = (status, data) => {
+  const sendJson = (status: number, data: any) => {
     res.statusCode = status;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.end(JSON.stringify(data));
   };
 
-  // 5. Safe Body Parser with Payload Size Limit (Prevents DoS CWE-400)
-  const getBody = (maxBytes = 1048576) => new Promise((resolve, reject) => {
-    if (req.body && typeof req.body === 'object') return resolve(req.body);
+  // 5. Safe Body Parser with Payload Size Limit (CWE-400)
+  const getBody = (maxBytes: number = 1048576): Promise<any> => new Promise((resolve, reject) => {
+    if ((req as any).body && typeof (req as any).body === 'object') return resolve((req as any).body);
     let bodyStr = '';
     let received = 0;
     let rejected = false;
 
-    req.on('data', chunk => {
+    req.on('data', (chunk: any) => {
       if (rejected) return;
       received += chunk.length;
       if (received > maxBytes) {
         rejected = true;
         req.removeAllListeners('data');
-        req.resume(); // Drain the remainder so connection stays intact
+        req.resume();
         return reject(new Error('PAYLOAD_TOO_LARGE'));
       }
       bodyStr += chunk;
@@ -316,28 +328,27 @@ module.exports = async function handler(req, res) {
         resolve({});
       }
     });
-    req.on('error', err => {
+    req.on('error', (err: any) => {
       if (!rejected) reject(err);
     });
   });
 
-  // 6. Timing-Safe Admin Authentication
-  
-    const recordActivationLog = async (entry) => {
-      try {
-        if (useNeon) {
-          await neonDb.logActivation(entry);
-        } else {
-          await saveFallbackLog(entry);
-        }
-      } catch (e) {
-        console.error('[Audit Log Error]:', e.message);
+  const recordActivationLog = async (entry: Partial<ActivationLog>) => {
+    try {
+      if (useNeon) {
+        await neonDb.logActivation(entry as any);
+      } else {
+        await saveFallbackLog(entry);
       }
-    };
+    } catch (e: any) {
+      console.error('[Audit Log Error]:', e.message);
+    }
+  };
 
-    const isAuthorizedAdmin = () => {
-    let provided = req.headers['x-admin-key'] || query.adminKey || '';
-    const authHeader = req.headers['authorization'] || '';
+  // 6. Timing-Safe Admin Authentication
+  const isAuthorizedAdmin = (): boolean => {
+    let provided = (req.headers['x-admin-key'] as string) || (query.adminKey as string) || '';
+    const authHeader = (req.headers['authorization'] as string) || '';
     if (authHeader.startsWith('Bearer ')) {
       provided = authHeader.substring(7).trim();
     }
@@ -345,17 +356,17 @@ module.exports = async function handler(req, res) {
   };
 
   try {
-        // ── 0. HEALTH CHECK & MONITORING ENDPOINT (PUBLIC) ─────────
+    // ── 0. HEALTH CHECK & MONITORING ENDPOINT (PUBLIC) ─────────
     if ((pathname === '/api/health' || pathname === '/api/status') && req.method === 'GET') {
-      let dbHealth = { connected: true, driver: 'local_file_fallback', latencyMs: 0 };
+      let dbHealth: any = { connected: true, driver: 'local_file_fallback', latencyMs: 0 };
 
       if (useNeon) {
         const nCheck = await neonDb.checkDbHealth();
         dbHealth = {
           connected: nCheck.connected,
-          driver: 'neon_postgres',
+          driver: 'neon_postgres' as const,
           latencyMs: nCheck.latencyMs,
-          error: nCheck.error || null
+          ...(nCheck.error ? { error: nCheck.error } : {})
         };
       } else {
         const fbCheckStart = Date.now();
@@ -377,7 +388,7 @@ module.exports = async function handler(req, res) {
         activeCount = lics.filter(l => l.status === 'ACTIVE' && l.machineId).length;
       }
 
-      return sendJson(200, {
+      const healthRes: HealthResponse = {
         status: dbHealth.connected ? 'healthy' : 'degraded',
         service: 'LTVStudio License & Cloud API',
         version: versionInfo?.version || '1.0.0',
@@ -388,16 +399,17 @@ module.exports = async function handler(req, res) {
           totalLicenses: totalCount,
           activeLicenses: activeCount
         }
-      });
+      };
+      return sendJson(200, healthRes);
     }
 
     // ── 0.1 ADMIN: ACTIVATION AUDIT LOGS ───────────────────────
     if (pathname === '/api/admin/licenses/logs' && req.method === 'GET') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized: Sai mã admin secret' });
 
-      const searchKey = (query.key || '').trim();
-      const limit = parseInt(query.limit) || 50;
-      let logs = [];
+      const searchKey = ((query.key as string) || '').trim();
+      const limit = parseInt(query.limit as string) || 50;
+      let logs: ActivationLog[] = [];
 
       if (useNeon) {
         logs = await neonDb.getActivationLogs(searchKey, limit);
@@ -415,23 +427,21 @@ module.exports = async function handler(req, res) {
 
     // ── 1. CLIENT VERSION CHECK ───────────────────────────────
     if ((pathname === '/api/transform/version' || pathname === '/api/version') && req.method === 'GET') {
-      const ver = useNeon ? (await neonDb.getVersionConfig() || DEFAULT_VERSION) : await getFallbackVersion();
+      const ver = useNeon ? await neonDb.getVersionConfig() : await getFallbackVersion();
       return sendJson(200, {
-        version: ver.version,
-        changelog: ver.changelog,
-        releaseNotes: ver.changelog,
-        download_url: ver.download_url || ver.downloadUrl,
-        downloadUrl: ver.download_url || ver.downloadUrl,
-        force_update: ver.force_update || false
+        version: ver?.version || '1.0.0',
+        changelog: ver?.changelog || ver?.releaseNotes || 'Bản cập nhật tối ưu hiệu năng và sửa lỗi giao diện.',
+        download_url: ver?.download_url || ver?.downloadUrl || 'https://github.com/ltvstudio/releases/releases',
+        force_update: ver?.force_update || false
       });
     }
 
-    // ── 2. CLIENT AUTH VERIFY (HWID Lock) ─────────────────────
+    // ── 2. LICENSE VALIDATION & HWID BINDING ───────────────────
     if (pathname === '/api/auth/verify' && req.method === 'POST') {
-      const body = await getBody(65536); // Max 64KB
+      const body = await getBody(65536);
       const licenseKey = (body.licenseKey || body.key || '').trim().toUpperCase().slice(0, 64);
       const machineId = (body.machineId || body.hwid || '').trim().slice(0, 128);
-      const userAgent = (req.headers['user-agent'] || '').slice(0, 200);
+      const userAgent = ((req.headers['user-agent'] as string) || '').slice(0, 200);
 
       if (!licenseKey) {
         await recordActivationLog({ licenseKey: 'EMPTY', machineId, ipAddress: clientIp, status: 'INVALID', message: 'Chưa nhập mã license', userAgent });
@@ -444,12 +454,12 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      let found = null;
+      let found: License | null = null;
       if (useNeon) {
         found = await neonDb.getLicenseByKey(licenseKey);
       } else {
         const licenses = await getFallbackLicenses();
-        found = licenses.find(l => l.key.toUpperCase() === licenseKey);
+        found = licenses.find(l => l.key.toUpperCase() === licenseKey) || null;
       }
 
       if (!found) {
@@ -501,7 +511,7 @@ module.exports = async function handler(req, res) {
       }
 
       // Check HWID Machine Lock
-      const updates = { lastVerifiedAt: new Date().toISOString() };
+      const updates: Partial<License> = { lastVerifiedAt: new Date().toISOString() };
       if (machineId) {
         if (!found.machineId) {
           found.machineId = machineId;
@@ -543,36 +553,27 @@ module.exports = async function handler(req, res) {
 
     // ── 3. PUBLIC LICENSE LOOKUP ───────────────────────────────
     if (pathname === '/api/license/lookup' && req.method === 'GET') {
-      const searchKey = (query.key || '').trim().toUpperCase().slice(0, 64);
+      const searchKey = ((query.key as string) || '').trim().toUpperCase().slice(0, 64);
       if (!searchKey) {
-        return sendJson(400, { error: 'Vui lòng cung cấp mã license key cần tra cứu' });
+        return sendJson(400, { error: 'Vui lòng cung cấp mã bản quyền cần tra cứu' });
       }
 
-      let found = null;
+      let found: License | null = null;
       if (useNeon) {
         found = await neonDb.getLicenseByKey(searchKey);
       } else {
         const licenses = await getFallbackLicenses();
-        found = licenses.find(l => l.key.toUpperCase() === searchKey);
+        found = licenses.find(l => l.key.toUpperCase() === searchKey) || null;
       }
 
       if (!found) {
-        return sendJson(200, { exists: false, message: 'Không tìm thấy thông tin bản quyền này trong hệ thống.' });
+        return sendJson(200, {
+          exists: false,
+          message: 'Mã bản quyền không tồn tại trong hệ thống.'
+        });
       }
 
-      let maskedHwid = null;
-      if (found.machineId) {
-        maskedHwid = found.machineId.length > 8
-          ? found.machineId.substring(0, 4) + '-****-' + found.machineId.substring(found.machineId.length - 4)
-          : 'Đã kích hoạt';
-      }
-
-      let daysLeft = 'Không giới hạn';
-      if (found.expiresAt && found.expiresAt !== 'LIFETIME' && found.expiresAt !== 'Vĩnh viễn') {
-        const diff = new Date(found.expiresAt).getTime() - Date.now();
-        daysLeft = diff > 0 ? Math.ceil(diff / (1000 * 3600 * 24)) + ' ngày' : 'Đã hết hạn';
-      }
-
+      // Return public masked info
       return sendJson(200, {
         exists: true,
         key: found.key,
@@ -580,14 +581,13 @@ module.exports = async function handler(req, res) {
         type: found.type,
         status: found.status,
         expiresAt: found.expiresAt === 'LIFETIME' ? 'Vĩnh viễn (Lifetime)' : found.expiresAt,
-        daysLeft: daysLeft,
-        isBound: !!found.machineId,
-        maskedMachineId: maskedHwid,
+        isActivated: !!found.machineId,
+        maskedMachineId: found.machineId ? `${found.machineId.substring(0, 5)}--****--${found.machineId.substring(found.machineId.length - 3)}` : null,
         createdAt: found.createdAt
       });
     }
 
-    // ── 4. ADMIN STATS ─────────────────────────────────────────
+    // ── 4. ADMIN DASHBOARD STATS ───────────────────────────────
     if (pathname === '/api/admin/stats' && req.method === 'GET') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized: Sai mã admin secret' });
 
@@ -604,7 +604,7 @@ module.exports = async function handler(req, res) {
       const revoked = licenses.filter(l => l.status === 'REVOKED').length;
       const lifetime = licenses.filter(l => l.plan === 'LIFETIME').length;
 
-      return sendJson(200, {
+      const adminStats: AdminStats = {
         total,
         active,
         unactivated,
@@ -613,18 +613,19 @@ module.exports = async function handler(req, res) {
         currentVersion: ver.version,
         downloadUrl: ver.download_url,
         dbProvider: 'Local JSON / Memory'
-      });
+      };
+      return sendJson(200, adminStats);
     }
 
     // ── 5. ADMIN LIST LICENSES ─────────────────────────────────
     if (pathname === '/api/admin/licenses' && req.method === 'GET') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
 
-      const q = (query.search || '').trim().slice(0, 100);
-      let status = (query.status || 'ALL').toUpperCase();
+      const q = ((query.search as string) || '').trim().slice(0, 100);
+      let status = ((query.status as string) || 'ALL').toUpperCase();
       const ALLOWED_STATUSES = ['ALL', 'ACTIVE', 'UNBOUND', 'REVOKED', 'EXPIRED'];
       if (!ALLOWED_STATUSES.includes(status)) status = 'ALL';
-      let plan = (query.plan || 'ALL').toUpperCase();
+      let plan = ((query.plan as string) || 'ALL').toUpperCase();
 
       if (useNeon) {
         const licenses = await neonDb.getLicenses(q, status, plan);
@@ -660,219 +661,212 @@ module.exports = async function handler(req, res) {
 
       const body = await getBody(65536);
       let plan = (body.plan || 'LIFETIME').toUpperCase();
-      const ALLOWED_PLANS = ['LIFETIME', '1_YEAR', '1_MONTH', 'TRIAL'];
-      if (!ALLOWED_PLANS.includes(plan)) plan = 'LIFETIME';
-
-      const count = Math.min(Math.max(parseInt(body.count || 1, 10), 1), 50);
-      const customer = (body.customer || 'Khách hàng').trim().slice(0, 100);
+      const count = Math.min(Math.max(parseInt(body.count) || 1, 1), 100);
+      const customer = (body.customer || '').trim().slice(0, 200);
       const notes = (body.notes || '').trim().slice(0, 500);
 
-      const createdKeys = [];
+      let typeName = 'LTVStudio Pro Lifetime';
+      let expiresAt = 'LIFETIME';
+
+      if (plan === '1_YEAR') {
+        typeName = 'LTVStudio Bản Quyền 1 Năm';
+        expiresAt = new Date(Date.now() + 365 * 86400000).toISOString();
+      } else if (plan === 'TRIAL') {
+        typeName = 'LTVStudio Dùng Thử 7 Ngày';
+        expiresAt = new Date(Date.now() + 7 * 86400000).toISOString();
+      } else if (plan === 'ENTERPRISE') {
+        typeName = 'LTVStudio Doanh Nghiệp (Enterprise)';
+        expiresAt = 'LIFETIME';
+      }
+
+      const newKeys: License[] = [];
       for (let i = 0; i < count; i++) {
-        let typeName = 'LTVStudio Pro Lifetime';
-        let expiresAt = 'LIFETIME';
-
-        const now = new Date();
-        if (plan === 'TRIAL') {
-          typeName = 'Bản dùng thử (Trial 7 ngày)';
-          now.setDate(now.getDate() + 7);
-          expiresAt = now.toISOString();
-        } else if (plan === '1_MONTH') {
-          typeName = 'LTVStudio Pro (1 Tháng)';
-          now.setDate(now.getDate() + 30);
-          expiresAt = now.toISOString();
-        } else if (plan === '1_YEAR') {
-          typeName = 'LTVStudio Pro (1 Năm)';
-          now.setDate(now.getDate() + 365);
-          expiresAt = now.toISOString();
-        }
-
-        const newKey = generateKey(plan);
-        const item = {
-          key: newKey,
+        newKeys.push({
+          key: generateKey(plan),
           type: typeName,
           plan: plan,
-          customer: count > 1 ? `${customer} #${i+1}` : customer,
+          customer: customer,
           notes: notes,
           machineId: null,
           status: 'ACTIVE',
           createdAt: new Date().toISOString(),
           expiresAt: expiresAt,
           lastVerifiedAt: null
-        };
-        createdKeys.push(item);
+        });
       }
 
       if (useNeon) {
-        await neonDb.createLicensesBatch(createdKeys);
+        await neonDb.createLicensesBatch(newKeys);
       } else {
-        const licenses = await getFallbackLicenses();
-        licenses.push(...createdKeys);
-        await saveFallbackLicenses(licenses);
+        const currentList = await getFallbackLicenses();
+        currentList.push(...newKeys);
+        await saveFallbackLicenses(currentList);
       }
 
-      return sendJson(200, { success: true, count: createdKeys.length, keys: createdKeys });
+      return sendJson(200, {
+        success: true,
+        count: newKeys.length,
+        keys: newKeys,
+        message: `Đã tạo thành công ${newKeys.length} mã bản quyền mới!`
+      });
     }
 
     // ── 7. ADMIN RESET HWID ────────────────────────────────────
     if (pathname === '/api/admin/licenses/reset-hwid' && req.method === 'POST') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+
       const body = await getBody(65536);
-      const key = (body.key || '').trim().toUpperCase().slice(0, 64);
+      const key = (body.key || '').trim().toUpperCase();
 
       if (useNeon) {
-        const success = await neonDb.updateLicense(key, { machineId: null });
-        if (!success) return sendJson(404, { error: 'Không tìm thấy key' });
+        await neonDb.updateLicense(key, { machineId: null });
       } else {
         const licenses = await getFallbackLicenses();
         const item = licenses.find(l => l.key.toUpperCase() === key);
-        if (!item) return sendJson(404, { error: 'Không tìm thấy key' });
-        item.machineId = null;
+        if (item) item.machineId = null;
         await saveFallbackLicenses(licenses);
       }
 
-      return sendJson(200, { success: true, message: `Đã mở khóa Machine ID cho key ${key}! Khách có thể kích hoạt trên máy mới.` });
+      return sendJson(200, { success: true, message: `Đã mở khóa thiết bị (Reset HWID) cho key ${key} thành công!` });
     }
 
     // ── 8. ADMIN TOGGLE STATUS ─────────────────────────────────
     if (pathname === '/api/admin/licenses/toggle-status' && req.method === 'POST') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+
       const body = await getBody(65536);
-      const key = (body.key || '').trim().toUpperCase().slice(0, 64);
+      const key = (body.key || '').trim().toUpperCase();
 
       let newStatus = 'ACTIVE';
       if (useNeon) {
-        const item = await neonDb.getLicenseByKey(key);
-        if (!item) return sendJson(404, { error: 'Không tìm thấy key' });
-        newStatus = item.status === 'ACTIVE' ? 'REVOKED' : 'ACTIVE';
+        const current = await neonDb.getLicenseByKey(key);
+        newStatus = current?.status === 'ACTIVE' ? 'REVOKED' : 'ACTIVE';
         await neonDb.updateLicense(key, { status: newStatus });
       } else {
         const licenses = await getFallbackLicenses();
         const item = licenses.find(l => l.key.toUpperCase() === key);
-        if (!item) return sendJson(404, { error: 'Không tìm thấy key' });
-        item.status = item.status === 'ACTIVE' ? 'REVOKED' : 'ACTIVE';
-        newStatus = item.status;
+        if (item) {
+          item.status = item.status === 'ACTIVE' ? 'REVOKED' : 'ACTIVE';
+          newStatus = item.status;
+        }
         await saveFallbackLicenses(licenses);
       }
 
-      return sendJson(200, { success: true, status: newStatus });
+      return sendJson(200, { success: true, status: newStatus, message: `Đã chuyển trạng thái key sang ${newStatus}` });
     }
 
-    // ── 9. ADMIN EXTEND DURATION ───────────────────────────────
+    // ── 9. ADMIN EXTEND LICENSE ────────────────────────────────
     if (pathname === '/api/admin/licenses/extend' && req.method === 'POST') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+
       const body = await getBody(65536);
-      const key = (body.key || '').trim().toUpperCase().slice(0, 64);
-      const days = Math.min(Math.max(parseInt(body.days || 30, 10), 1), 3650); // Max 10 years
-      const makeLifetime = body.makeLifetime === true;
+      const key = (body.key || '').trim().toUpperCase();
+      const days = parseInt(body.days) || 30;
 
-      let item = null;
-      if (useNeon) {
-        item = await neonDb.getLicenseByKey(key);
-        if (!item) return sendJson(404, { error: 'Không tìm thấy key' });
-      } else {
-        const licenses = await getFallbackLicenses();
-        item = licenses.find(l => l.key.toUpperCase() === key);
-        if (!item) return sendJson(404, { error: 'Không tìm thấy key' });
-      }
-
-      let newPlan = item.plan;
-      let newType = item.type;
-      let newExpiresAt = item.expiresAt;
-
-      if (makeLifetime) {
-        newPlan = 'LIFETIME';
-        newType = 'LTVStudio Pro Lifetime';
+      let newExpiresAt = 'LIFETIME';
+      if (body.lifetime) {
         newExpiresAt = 'LIFETIME';
       } else {
-        const baseDate = (item.expiresAt && item.expiresAt !== 'LIFETIME' && item.expiresAt !== 'Vĩnh viễn')
-          ? new Date(Math.max(new Date(item.expiresAt).getTime(), Date.now()))
-          : new Date();
-        baseDate.setDate(baseDate.getDate() + days);
-        newExpiresAt = baseDate.toISOString();
+        let currentExp = new Date();
+        let targetItem: License | null = null;
+        if (useNeon) {
+          targetItem = await neonDb.getLicenseByKey(key);
+        } else {
+          const lics = await getFallbackLicenses();
+          targetItem = lics.find(l => l.key.toUpperCase() === key) || null;
+        }
+
+        if (targetItem && targetItem.expiresAt && targetItem.expiresAt !== 'LIFETIME') {
+          const parsed = new Date(targetItem.expiresAt);
+          if (parsed > new Date()) currentExp = parsed;
+        }
+        newExpiresAt = new Date(currentExp.getTime() + days * 86400000).toISOString();
       }
 
-      const updates = { plan: newPlan, type: newType, expiresAt: newExpiresAt, status: 'ACTIVE' };
-
       if (useNeon) {
-        await neonDb.updateLicense(key, updates);
+        await neonDb.updateLicense(key, { expiresAt: newExpiresAt, status: 'ACTIVE' });
       } else {
         const licenses = await getFallbackLicenses();
-        const found = licenses.find(l => l.key.toUpperCase() === key);
-        if (found) Object.assign(found, updates);
+        const item = licenses.find(l => l.key.toUpperCase() === key);
+        if (item) {
+          item.expiresAt = newExpiresAt;
+          item.status = 'ACTIVE';
+        }
         await saveFallbackLicenses(licenses);
       }
 
-      return sendJson(200, { success: true, item: { ...item, ...updates } });
+      return sendJson(200, { success: true, expiresAt: newExpiresAt, message: `Đã gia hạn bản quyền đến: ${newExpiresAt}` });
     }
 
-    // ── 10. ADMIN DELETE KEY ───────────────────────────────────
+    // ── 10. ADMIN DELETE LICENSE ───────────────────────────────
     if (pathname === '/api/admin/licenses/delete' && req.method === 'POST') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
+
       const body = await getBody(65536);
-      const key = (body.key || '').trim().toUpperCase().slice(0, 64);
+      const key = (body.key || '').trim().toUpperCase();
 
       if (useNeon) {
-        const ok = await neonDb.deleteLicense(key);
-        if (!ok) return sendJson(404, { error: 'Không tìm thấy key' });
+        await neonDb.deleteLicense(key);
       } else {
         let licenses = await getFallbackLicenses();
-        const initLen = licenses.length;
         licenses = licenses.filter(l => l.key.toUpperCase() !== key);
-        if (licenses.length === initLen) return sendJson(404, { error: 'Không tìm thấy key' });
         await saveFallbackLicenses(licenses);
       }
 
-      return sendJson(200, { success: true, message: `Đã xóa key ${key}` });
+      return sendJson(200, { success: true, message: `Đã xóa mã bản quyền ${key} thành công!` });
     }
 
-    // ── 11. ADMIN VERSION MANAGEMENT ───────────────────────────
+    // ── 11. ADMIN GET / UPDATE VERSION CONFIG ──────────────────
     if (pathname === '/api/admin/version') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
 
       if (req.method === 'GET') {
-        const ver = useNeon ? (await neonDb.getVersionConfig() || DEFAULT_VERSION) : await getFallbackVersion();
-        return sendJson(200, ver);
+        const ver = useNeon ? await neonDb.getVersionConfig() : await getFallbackVersion();
+        return sendJson(200, ver || {});
       }
+
       if (req.method === 'POST') {
-        const body = await getBody(131072); // Max 128KB
-        const current = useNeon ? (await neonDb.getVersionConfig() || DEFAULT_VERSION) : await getFallbackVersion();
-        const updated = {
-          version: (body.version || current.version).slice(0, 32),
-          changelog: (body.changelog !== undefined ? body.changelog : current.changelog).slice(0, 5000),
-          releaseNotes: (body.changelog !== undefined ? body.changelog : current.changelog).slice(0, 5000),
-          download_url: (body.download_url || current.download_url).slice(0, 1000),
-          downloadUrl: (body.download_url || current.download_url).slice(0, 1000),
-          force_update: body.force_update !== undefined ? !!body.force_update : current.force_update,
+        const body = await getBody(131072);
+        const updateData: Partial<VersionConfig> = {
+          version: body.version,
+          changelog: body.changelog || body.releaseNotes,
+          download_url: body.download_url || body.downloadUrl,
+          force_update: !!body.force_update,
           updated_at: new Date().toISOString()
         };
 
         if (useNeon) {
-          await neonDb.updateVersionConfig(updated);
+          await neonDb.updateVersionConfig(updateData);
         } else {
-          await saveFallbackVersion(updated);
+          const current = await getFallbackVersion();
+          Object.assign(current, updateData);
+          await saveFallbackVersion(current);
         }
 
-        return sendJson(200, { success: true, config: updated });
+        return sendJson(200, { success: true, message: 'Đã cập nhật thông tin phiên bản thành công!' });
       }
     }
 
-    // ── 12. ADMIN BACKUP & RESTORE ─────────────────────────────
+    // ── 12. ADMIN BACKUP DATABASE ──────────────────────────────
     if (pathname === '/api/admin/backup' && req.method === 'GET') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
-      const licenses = useNeon ? (await neonDb.getLicenses('', 'ALL')) : (await getFallbackLicenses());
-      const version = useNeon ? (await neonDb.getVersionConfig()) : (await getFallbackVersion());
+
+      const licenses = useNeon ? await neonDb.getLicenses() : await getFallbackLicenses();
+      const version = useNeon ? await neonDb.getVersionConfig() : await getFallbackVersion();
+
       return sendJson(200, {
         exportedAt: new Date().toISOString(),
-        dbSource: useNeon ? 'Neon Postgres' : 'Local File',
-        licenses: licenses || [],
-        version: version || DEFAULT_VERSION
+        totalLicenses: licenses?.length || 0,
+        version: version,
+        licenses: licenses
       });
     }
 
+    // ── 13. ADMIN RESTORE DATABASE ─────────────────────────────
     if (pathname === '/api/admin/restore' && req.method === 'POST') {
       if (!isAuthorizedAdmin()) return sendJson(401, { error: 'Unauthorized' });
-      const body = await getBody(5242880); // Max 5MB for backup restore
+
+      const body = await getBody(5242880);
 
       if (useNeon) {
         await neonDb.restoreDatabase(body.licenses, body.version);
@@ -889,12 +883,11 @@ module.exports = async function handler(req, res) {
     }
 
     return sendJson(404, { error: 'API route not found', path: pathname });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API Server Error]:', error);
     if (error.message === 'PAYLOAD_TOO_LARGE') {
       return sendJson(413, { error: 'Payload Too Large', message: 'Dữ liệu gửi lên vượt quá dung lượng cho phép!' });
     }
-    // Prevent internal sensitive leak (CWE-209)
     return sendJson(500, { error: 'Internal Server Error', message: 'Đã xảy ra lỗi trên máy chủ. Vui lòng thử lại sau!' });
   }
-};
+}

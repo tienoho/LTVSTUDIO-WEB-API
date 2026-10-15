@@ -1,13 +1,20 @@
 /**
- * Neon Postgres Database Layer for LTVStudio
- * Supports @neondatabase/serverless (HTTP-based Serverless Driver) and standard pg Pool
+ * Neon Postgres Database Layer for LTVStudio (TypeScript)
+ * Supports @neondatabase/serverless and standard pg Pool
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import type { 
+  License, 
+  VersionConfig, 
+  ActivationLog, 
+  AdminStats, 
+  DbHealth 
+} from '../types/index';
 
-// Dynamic Connection string from environment variables (supports Neon & Vercel Postgres)
-function getDatabaseUrl() {
+// Dynamic Connection string from environment variables
+export function getDatabaseUrl(): string {
   return process.env.DATABASE_URL || 
          process.env.POSTGRES_URL || 
          process.env.POSTGRES_PRISMA_URL || 
@@ -15,34 +22,34 @@ function getDatabaseUrl() {
          process.env.NEON_DATABASE_URL || '';
 }
 
-let sqlClient = null;
+let sqlClient: any = null;
 let isInitialized = false;
 
 // Check if Neon is configured
-function isNeonConfigured() {
+export function isNeonConfigured(): boolean {
   const url = getDatabaseUrl();
   return !!url && (url.startsWith('postgres://') || url.startsWith('postgresql://'));
 }
 
 // Get Neon client
-function getClient() {
+export function getClient(): any {
   if (sqlClient) return sqlClient;
   if (!isNeonConfigured()) return null;
 
   const connStr = getDatabaseUrl();
 
   try {
+    // Dynamic require for serverless environment compatibility
     const { neon } = require('@neondatabase/serverless');
     sqlClient = neon(connStr);
     return sqlClient;
-  } catch (err) {
+  } catch (err: any) {
     console.warn('[Neon Postgres] @neondatabase/serverless not available, falling back:', err.message);
     try {
       const { Pool } = require('pg');
       const pool = new Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false } });
-      sqlClient = async (strings, ...values) => {
-        if (Array.isArray(strings) && strings.raw) {
-          // Tagged template literal: sql`SELECT * FROM tbl WHERE id = ${id}`
+      sqlClient = async (strings: any, ...values: any[]) => {
+        if (Array.isArray(strings) && (strings as any).raw) {
           let query = '';
           for (let i = 0; i < strings.length; i++) {
             query += strings[i];
@@ -53,13 +60,12 @@ function getClient() {
           const res = await pool.query(query, values);
           return res.rows;
         } else {
-          // Standard call: sql(queryText, params)
           const res = await pool.query(strings, values[0] || []);
           return res.rows;
         }
       };
       return sqlClient;
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Neon Postgres] Driver initialization failed:', e.message);
       return null;
     }
@@ -67,9 +73,10 @@ function getClient() {
 }
 
 // Helper map DB row to JS Object
-function mapLicenseRow(row) {
+export function mapLicenseRow(row: any): License | null {
   if (!row) return null;
   return {
+    id: row.id,
     key: row.key,
     type: row.type,
     plan: row.plan,
@@ -85,7 +92,7 @@ function mapLicenseRow(row) {
 }
 
 // Initialize Database Schema & Seed Data
-async function initDb(seedLicenses = [], seedVersion = null) {
+export async function initDb(seedLicenses: License[] = [], seedVersion: VersionConfig | null = null): Promise<boolean> {
   const sql = getClient();
   if (!sql) return false;
   if (isInitialized) return true;
@@ -124,7 +131,6 @@ async function initDb(seedLicenses = [], seedVersion = null) {
       );
     `;
 
-    
     // 3. Create table activation_logs (Audit Trail & Anti-Fraud)
     await sql`
       CREATE TABLE IF NOT EXISTS activation_logs (
@@ -141,7 +147,7 @@ async function initDb(seedLicenses = [], seedVersion = null) {
     await sql`CREATE INDEX IF NOT EXISTS idx_logs_key ON activation_logs(license_key);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_logs_created_at ON activation_logs(created_at);`;
 
-    // 3. Seed licenses if empty
+    // 4. Seed licenses if empty
     const countRes = await sql`SELECT COUNT(*)::int AS count FROM licenses;`;
     const count = countRes[0]?.count || 0;
 
@@ -157,7 +163,7 @@ async function initDb(seedLicenses = [], seedVersion = null) {
       }
     }
 
-    // 4. Seed version_config if empty
+    // 5. Seed version_config if empty
     const verRes = await sql`SELECT COUNT(*)::int AS count FROM version_config;`;
     if ((verRes[0]?.count || 0) === 0 && seedVersion) {
       await sql`
@@ -172,61 +178,50 @@ async function initDb(seedLicenses = [], seedVersion = null) {
     isInitialized = true;
     console.log('[Neon Postgres] Connected and schema initialized successfully!');
     return true;
-  } catch (err) {
-    console.error('[Neon Postgres] Initialization error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] Initialization error:', err.message);
     return false;
   }
 }
 
 // ── CRUD OPERATIONS ──────────────────────────────────────────
 
-async function getLicenses(search = '', status = 'ALL') {
+export async function getLicenses(search: string = '', status: string = 'ALL', plan: string = 'ALL'): Promise<License[] | null> {
   const sql = getClient();
   if (!sql) return null;
 
   try {
-    let rows;
-    if (status !== 'ALL') {
-      if (search) {
-        const queryTerm = `%${search}%`;
-        rows = await sql`
-          SELECT * FROM licenses 
-          WHERE status = ${status} AND (
-            key ILIKE ${queryTerm} OR 
-            customer ILIKE ${queryTerm} OR 
-            notes ILIKE ${queryTerm} OR 
-            machine_id ILIKE ${queryTerm}
-          )
-          ORDER BY id DESC;
-        `;
-      } else {
-        rows = await sql`SELECT * FROM licenses WHERE status = ${status} ORDER BY id DESC;`;
-      }
-    } else {
-      if (search) {
-        const queryTerm = `%${search}%`;
-        rows = await sql`
-          SELECT * FROM licenses 
-          WHERE 
-            key ILIKE ${queryTerm} OR 
-            customer ILIKE ${queryTerm} OR 
-            notes ILIKE ${queryTerm} OR 
-            machine_id ILIKE ${queryTerm}
-          ORDER BY id DESC;
-        `;
-      } else {
-        rows = await sql`SELECT * FROM licenses ORDER BY id DESC;`;
-      }
+    const rows = await sql`SELECT * FROM licenses ORDER BY id DESC;`;
+    let items: License[] = rows.map(mapLicenseRow).filter((x: any): x is License => x !== null);
+
+    if (status === 'UNBOUND') {
+      items = items.filter(l => l.status === 'ACTIVE' && !l.machineId);
+    } else if (status !== 'ALL') {
+      items = items.filter(l => l.status === status);
     }
 
-    return rows.map(mapLicenseRow);
-  } catch (err) {
-    console.error('[Neon Postgres] getLicenses error:', err);
+    if (plan !== 'ALL') {
+      items = items.filter(l => (l.plan || '').toUpperCase() === plan.toUpperCase());
+    }
+
+    if (search && search.trim()) {
+      const term = search.trim().toLowerCase();
+      items = items.filter(l =>
+        (l.key && l.key.toLowerCase().includes(term)) ||
+        (l.customer && l.customer.toLowerCase().includes(term)) ||
+        (l.notes && l.notes.toLowerCase().includes(term)) ||
+        (l.machineId && l.machineId.toLowerCase().includes(term))
+      );
+    }
+
+    return items;
+  } catch (err: any) {
+    console.error('[Neon Postgres] getLicenses error:', err.message);
     return null;
   }
 }
 
-async function getLicenseByKey(key) {
+export async function getLicenseByKey(key: string): Promise<License | null> {
   const sql = getClient();
   if (!sql) return null;
 
@@ -234,13 +229,13 @@ async function getLicenseByKey(key) {
     const rows = await sql`SELECT * FROM licenses WHERE UPPER(key) = UPPER(${key}) LIMIT 1;`;
     if (!rows || rows.length === 0) return null;
     return mapLicenseRow(rows[0]);
-  } catch (err) {
-    console.error('[Neon Postgres] getLicenseByKey error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] getLicenseByKey error:', err.message);
     return null;
   }
 }
 
-async function createLicense(item) {
+export async function createLicense(item: License): Promise<License | null> {
   const sql = getClient();
   if (!sql) return null;
 
@@ -251,13 +246,13 @@ async function createLicense(item) {
               ${item.machineId || null}, ${item.status || 'ACTIVE'}, ${item.expiresAt || 'LIFETIME'}, NOW());
     `;
     return item;
-  } catch (err) {
-    console.error('[Neon Postgres] createLicense error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] createLicense error:', err.message);
     return null;
   }
 }
 
-async function createLicensesBatch(items) {
+export async function createLicensesBatch(items: License[]): Promise<License[] | null> {
   const sql = getClient();
   if (!sql) return null;
 
@@ -266,13 +261,13 @@ async function createLicensesBatch(items) {
       await createLicense(item);
     }
     return items;
-  } catch (err) {
-    console.error('[Neon Postgres] createLicensesBatch error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] createLicensesBatch error:', err.message);
     return null;
   }
 }
 
-async function updateLicense(key, updates) {
+export async function updateLicense(key: string, updates: Partial<License>): Promise<boolean> {
   const sql = getClient();
   if (!sql) return false;
 
@@ -301,26 +296,26 @@ async function updateLicense(key, updates) {
       WHERE UPPER(key) = UPPER(${key});
     `;
     return true;
-  } catch (err) {
-    console.error('[Neon Postgres] updateLicense error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] updateLicense error:', err.message);
     return false;
   }
 }
 
-async function deleteLicense(key) {
+export async function deleteLicense(key: string): Promise<boolean> {
   const sql = getClient();
   if (!sql) return false;
 
   try {
     const res = await sql`DELETE FROM licenses WHERE UPPER(key) = UPPER(${key}) RETURNING key;`;
     return res && res.length > 0;
-  } catch (err) {
-    console.error('[Neon Postgres] deleteLicense error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] deleteLicense error:', err.message);
     return false;
   }
 }
 
-async function getStats() {
+export async function getStats(): Promise<AdminStats | null> {
   const sql = getClient();
   if (!sql) return null;
 
@@ -344,15 +339,16 @@ async function getStats() {
       revoked: s.revoked || 0,
       lifetime: s.lifetime || 0,
       currentVersion: ver?.version || '1.0.0',
-      downloadUrl: ver?.download_url || ver?.downloadUrl || ''
+      downloadUrl: ver?.download_url || ver?.downloadUrl || '',
+      dbProvider: 'Neon Postgres (Cloud)'
     };
-  } catch (err) {
-    console.error('[Neon Postgres] getStats error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] getStats error:', err.message);
     return null;
   }
 }
 
-async function getVersionConfig() {
+export async function getVersionConfig(): Promise<VersionConfig | null> {
   const sql = getClient();
   if (!sql) return null;
 
@@ -361,6 +357,7 @@ async function getVersionConfig() {
     if (!rows || rows.length === 0) return null;
     const r = rows[0];
     return {
+      id: r.id,
       version: r.version,
       changelog: r.changelog,
       releaseNotes: r.changelog,
@@ -369,13 +366,13 @@ async function getVersionConfig() {
       force_update: r.force_update,
       updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString()
     };
-  } catch (err) {
-    console.error('[Neon Postgres] getVersionConfig error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] getVersionConfig error:', err.message);
     return null;
   }
 }
 
-async function updateVersionConfig(config) {
+export async function updateVersionConfig(config: Partial<VersionConfig>): Promise<boolean> {
   const sql = getClient();
   if (!sql) return false;
 
@@ -398,13 +395,13 @@ async function updateVersionConfig(config) {
         updated_at = NOW();
     `;
     return true;
-  } catch (err) {
-    console.error('[Neon Postgres] updateVersionConfig error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] updateVersionConfig error:', err.message);
     return false;
   }
 }
 
-async function restoreDatabase(licensesList, versionObj) {
+export async function restoreDatabase(licensesList: License[], versionObj: VersionConfig): Promise<boolean> {
   const sql = getClient();
   if (!sql) return false;
 
@@ -419,38 +416,45 @@ async function restoreDatabase(licensesList, versionObj) {
       await updateVersionConfig(versionObj);
     }
     return true;
-  } catch (err) {
-    console.error('[Neon Postgres] restoreDatabase error:', err);
+  } catch (err: any) {
+    console.error('[Neon Postgres] restoreDatabase error:', err.message);
     return false;
   }
 }
 
-
 // ── ACTIVATION AUDIT LOGS & HEALTH MONITOR ───────────────────
 
-async function logActivation({ licenseKey, machineId = '', ipAddress = '', status = 'SUCCESS', message = '', userAgent = '' }) {
+export async function logActivation(entry: {
+  licenseKey: string;
+  machineId?: string;
+  ipAddress?: string;
+  status?: string;
+  message?: string;
+  userAgent?: string;
+}): Promise<boolean> {
   const sql = getClient();
   if (!sql) return false;
 
   try {
     await sql`
       INSERT INTO activation_logs (license_key, machine_id, ip_address, status, message, user_agent, created_at)
-      VALUES (${licenseKey}, ${machineId}, ${ipAddress}, ${status}, ${message}, ${userAgent}, NOW());
+      VALUES (${entry.licenseKey}, ${entry.machineId || ''}, ${entry.ipAddress || ''}, 
+              ${entry.status || 'SUCCESS'}, ${entry.message || ''}, ${entry.userAgent || ''}, NOW());
     `;
     return true;
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Neon Postgres] logActivation error:', err.message);
     return false;
   }
 }
 
-async function getActivationLogs(key = '', limit = 50) {
+export async function getActivationLogs(key: string = '', limit: number = 50): Promise<ActivationLog[]> {
   const sql = getClient();
   if (!sql) return [];
 
   try {
-    const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 200);
-    let rows;
+    const lim = Math.min(Math.max(Number(limit) || 50, 1), 200);
+    let rows: any[];
     if (key && key.trim()) {
       rows = await sql`
         SELECT * FROM activation_logs 
@@ -476,41 +480,23 @@ async function getActivationLogs(key = '', limit = 50) {
       userAgent: r.user_agent || '',
       createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
     }));
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Neon Postgres] getActivationLogs error:', err.message);
     return [];
   }
 }
 
-async function checkDbHealth() {
+export async function checkDbHealth(): Promise<DbHealth> {
   const sql = getClient();
   if (!sql) {
-    return { connected: false, error: 'Neon driver not configured', latencyMs: 0 };
+    return { connected: false, driver: 'neon_postgres', error: 'Neon driver not configured', latencyMs: 0 };
   }
 
   const start = Date.now();
   try {
     await sql`SELECT 1;`;
-    return { connected: true, latencyMs: Date.now() - start };
-  } catch (err) {
-    return { connected: false, error: err.message, latencyMs: Date.now() - start };
+    return { connected: true, driver: 'neon_postgres', latencyMs: Date.now() - start };
+  } catch (err: any) {
+    return { connected: false, driver: 'neon_postgres', error: err.message, latencyMs: Date.now() - start };
   }
 }
-
-module.exports = {
-  isNeonConfigured,
-  initDb,
-  getLicenses,
-  getLicenseByKey,
-  createLicense,
-  createLicensesBatch,
-  updateLicense,
-  deleteLicense,
-  getStats,
-  getVersionConfig,
-  updateVersionConfig,
-  restoreDatabase,
-  logActivation,
-  getActivationLogs,
-  checkDbHealth
-};

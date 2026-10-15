@@ -1,15 +1,23 @@
 {
   "name": "ltvstudio-web-api",
   "version": "1.0.0",
-  "description": "LTVStudio License Verification & Version Update Management Web API",
-  "main": "server.js",
+  "description": "LTVStudio License Verification & Version Update Management Web API (TypeScript)",
+  "main": "server.ts",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "tsx server.ts",
+    "dev": "tsx watch server.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
     "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/pg": "^8.11.11",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
   },
   "author": "LTVStudio Team",
   "license": "MIT"

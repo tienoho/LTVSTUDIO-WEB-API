@@ -1,9 +1,9 @@
 @echo off
-title LTVStudio - Web API & License Server
+title LTVStudio - Web API & License Server (TypeScript)
 color 0A
 
 echo ======================================================================
-echo           LTVSTUDIO WEB API & LICENSE MANAGEMENT SERVER
+echo       LTVSTUDIO WEB API & LICENSE MANAGEMENT SERVER (TYPESCRIPT)
 echo ======================================================================
 echo.
 
@@ -17,7 +17,12 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-echo [*] Dang khoi dong Web API & Admin Dashboard tren cong 8080...
+echo [*] Dang khoi dong Web API & Admin Dashboard (TypeScript) tren cong 8080...
 start "" http://localhost:8080/
-node server.js
+
+if exist "node_modules\tsx\dist\cli.mjs" (
+    node node_modules\tsx\dist\cli.mjs server.ts
+) else (
+    npx tsx server.ts
+)
 pause

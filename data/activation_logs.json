@@ -1,5 +1,95 @@
 [
   {
+    "id": 1792041931009,
+    "licenseKey": "LTV-PRO-473CC0-5F519D-B2DDC7",
+    "machineId": "HWID-PC-ATTACKER-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: HWID-PC-OFFICE-01)",
+    "userAgent": "HackerTool/2.0",
+    "createdAt": "2026-10-15T05:25:30.030Z"
+  },
+  {
+    "id": 1792041930834,
+    "licenseKey": "LTV-PRO-473CC0-5F519D-B2DDC7",
+    "machineId": "HWID-PC-OFFICE-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "LTVStudio-Desktop/1.0",
+    "createdAt": "2026-10-15T05:25:30.027Z"
+  },
+  {
+    "id": 1792041928582,
+    "licenseKey": "LTV-PRO-8888-9999-LIFETIME",
+    "machineId": "WIN-GUID-AUTOMATED-TEST-001",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T05:25:27.675Z"
+  },
+  {
+    "id": 1792041794427,
+    "licenseKey": "LTV-PRO-67EDF9-571AB9-E99F31",
+    "machineId": "HWID-PC-ATTACKER-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: HWID-PC-OFFICE-01)",
+    "userAgent": "HackerTool/2.0",
+    "createdAt": "2026-10-15T05:23:13.820Z"
+  },
+  {
+    "id": 1792041793934,
+    "licenseKey": "LTV-PRO-67EDF9-571AB9-E99F31",
+    "machineId": "HWID-PC-OFFICE-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "LTVStudio-Desktop/1.0",
+    "createdAt": "2026-10-15T05:23:13.817Z"
+  },
+  {
+    "id": 1792041791554,
+    "licenseKey": "LTV-PRO-8888-9999-LIFETIME",
+    "machineId": "WIN-GUID-AUTOMATED-TEST-001",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T05:23:11.489Z"
+  },
+  {
+    "id": 1792041514124,
+    "licenseKey": "LTV-PRO-292ED3-322014-E1B4A5",
+    "machineId": "HWID-PC-ATTACKER-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: HWID-PC-OFFICE-01)",
+    "userAgent": "HackerTool/2.0",
+    "createdAt": "2026-10-15T05:18:33.435Z"
+  },
+  {
+    "id": 1792041514017,
+    "licenseKey": "LTV-PRO-292ED3-322014-E1B4A5",
+    "machineId": "HWID-PC-OFFICE-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "LTVStudio-Desktop/1.0",
+    "createdAt": "2026-10-15T05:18:33.431Z"
+  },
+  {
+    "id": 1792041511741,
+    "licenseKey": "LTV-PRO-8888-9999-LIFETIME",
+    "machineId": "WIN-GUID-AUTOMATED-TEST-001",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T05:18:31.062Z"
+  },
+  {
     "id": 1792039862383,
     "licenseKey": "LTV-LIFE-CF873B-1569DD-53B818",
     "machineId": "HWID-PC-ATTACKER-99",
