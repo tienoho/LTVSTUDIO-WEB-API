@@ -35,6 +35,18 @@ const DEFAULT_VERSION: VersionConfig = {
 
 const DEFAULT_LICENSES: License[] = [
   {
+    key: "LTV-PRO-8888-9999-LIFETIME",
+    type: "LTVStudio Pro Lifetime (Master License)",
+    plan: "LIFETIME",
+    customer: "Khách Hàng VIP Trọn Đời",
+    notes: "Mã Master mặc định - Dành cho kiểm thử và kích hoạt",
+    machineId: null,
+    status: "ACTIVE",
+    createdAt: new Date().toISOString(),
+    expiresAt: "LIFETIME",
+    lastVerifiedAt: null
+  },
+  {
     key: "LTV-PRO-MASTER-2026-DEV",
     type: "LTVStudio Pro Lifetime (Developer Master)",
     plan: "LIFETIME",
@@ -464,8 +476,26 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
   const host = req.headers.host || 'localhost';
   const protocol = (req.headers['x-forwarded-proto'] as string) || 'http';
-  const parsedUrl = new URL(req.url || '/', `${protocol}://${host}`);
-  const pathname = (parsedUrl.pathname || '/').replace(/^\/api\/index\.js/, '/api');
+
+  // Robust path resolution across Local, VPS and Vercel Serverless
+  let rawUrl = (req.headers['x-matched-path'] as string) 
+            || (req.headers['x-forwarded-uri'] as string) 
+            || (req.headers['x-original-url'] as string) 
+            || req.url 
+            || '/';
+
+  const parsedUrl = new URL(rawUrl, `${protocol}://${host}`);
+  let pathname = (parsedUrl.pathname || '/').replace(/^\/api\/index(\.js|\.ts)?/, '/api');
+
+  // Handle dynamic Vercel serverless catch-all routing (e.g. /api/[...slug])
+  if (pathname === '/api/[...slug]' || pathname === '/api' || pathname === '/api/') {
+    const slug = (req as any).query?.slug || (req as any).query?.path;
+    if (Array.isArray(slug) && slug.length > 0) {
+      pathname = '/api/' + slug.join('/');
+    } else if (typeof slug === 'string' && slug) {
+      pathname = slug.startsWith('/api') ? slug : ('/api/' + slug);
+    }
+  }
   const query: Record<string, string> = Object.fromEntries(parsedUrl.searchParams.entries());
 
   const sendJson = (status: number, data: any) => {
@@ -476,7 +506,16 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
   // 5. Safe Body Parser with Payload Size Limit (CWE-400)
   const getBody = (maxBytes: number = 1048576): Promise<any> => new Promise((resolve, reject) => {
-    if ((req as any).body && typeof (req as any).body === 'object') return resolve((req as any).body);
+    // Vercel Serverless pre-parsed body support
+    if ((req as any).body !== undefined && (req as any).body !== null) {
+      if (typeof (req as any).body === 'object') return resolve((req as any).body);
+      if (typeof (req as any).body === 'string' && (req as any).body.trim()) {
+        try { return resolve(JSON.parse((req as any).body)); } catch (e) { return resolve({}); }
+      }
+      if (Buffer.isBuffer((req as any).body)) {
+        try { return resolve(JSON.parse((req as any).body.toString('utf8'))); } catch (e) { return resolve({}); }
+      }
+    }
     let bodyStr = '';
     let received = 0;
     let rejected = false;
