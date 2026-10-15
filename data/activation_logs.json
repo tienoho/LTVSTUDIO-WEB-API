@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1792039862383,
+    "licenseKey": "LTV-LIFE-CF873B-1569DD-53B818",
+    "machineId": "HWID-PC-ATTACKER-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: HWID-PC-OFFICE-01)",
+    "userAgent": "HackerTool/2.0",
+    "createdAt": "2026-10-15T04:51:01.739Z"
+  },
+  {
+    "id": 1792039861753,
+    "licenseKey": "LTV-LIFE-CF873B-1569DD-53B818",
+    "machineId": "HWID-PC-OFFICE-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "LTVStudio-Desktop/1.0",
+    "createdAt": "2026-10-15T04:51:01.735Z"
+  },
+  {
+    "id": 1792039859638,
+    "licenseKey": "LTV-PRO-8888-9999-LIFETIME",
+    "machineId": "WIN-GUID-AUTOMATED-TEST-001",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T04:50:59.363Z"
+  },
+  {
+    "id": 1792039679333,
+    "licenseKey": "LTV-LIFE-231B96-6BCCD5-7C20BF",
+    "machineId": "HWID-PC-ATTACKER-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: HWID-PC-OFFICE-01)",
+    "userAgent": "HackerTool/2.0",
+    "createdAt": "2026-10-15T04:47:58.834Z"
+  },
+  {
+    "id": 1792039678874,
+    "licenseKey": "LTV-LIFE-231B96-6BCCD5-7C20BF",
+    "machineId": "HWID-PC-OFFICE-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "LTVStudio-Desktop/1.0",
+    "createdAt": "2026-10-15T04:47:58.830Z"
+  },
+  {
+    "id": 1792039654430,
+    "licenseKey": "LTV-PRO-8888-9999-LIFETIME",
+    "machineId": "WIN-GUID-AUTOMATED-TEST-001",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T04:47:33.625Z"
+  },
+  {
+    "id": 1792039241607,
+    "licenseKey": "TEST-KEY-NOT-EXIST",
+    "machineId": "TEST-HWID-001",
+    "ipAddress": "::1",
+    "status": "NOT_FOUND",
+    "message": "Mã không tồn tại",
+    "userAgent": "TestClient/1.0",
+    "createdAt": "2026-10-15T04:40:40.768Z"
+  }
+]

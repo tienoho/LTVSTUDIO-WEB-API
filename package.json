@@ -1,0 +1,16 @@
+{
+  "name": "ltvstudio-web-api",
+  "version": "1.0.0",
+  "description": "LTVStudio License Verification & Version Update Management Web API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "pg": "^8.13.1"
+  },
+  "author": "LTVStudio Team",
+  "license": "MIT"
+}

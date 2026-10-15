@@ -86,3 +86,37 @@ node server.js
 - **Mã Secret Key mặc định:** `ltvstudio_secret_admin_2026`
 - Bạn có thể đổi mã này qua biến môi trường `ADMIN_SECRET` hoặc sửa trong `server.js`.
 # LTVSTUDIO-WEB-API
+
+
+### 3. Giám Sát Hệ Thống & Nhật Ký Bảo Mật
+- **Health Check & Uptime API (Public):**
+  ```http
+  GET /api/health
+  ```
+  *Response:*
+  ```json
+  {
+    "status": "healthy",
+    "service": "LTVStudio License & Cloud API",
+    "version": "1.0.0",
+    "uptimeSeconds": 3600,
+    "database": {
+      "driver": "neon_postgres",
+      "connected": true,
+      "latencyMs": 18
+    },
+    "stats": {
+      "totalLicenses": 50,
+      "activeLicenses": 32
+    }
+  }
+  ```
+
+- **Nhật ký kích hoạt & Chống gian lận (Admin):**
+  ```http
+  GET /api/admin/licenses/logs?key=LTV-PRO-XXXX&limit=50
+  Header: x-admin-key: <ADMIN_SECRET>
+  ```
+  *Response:* Danh sách lịch sử các lần gọi API xác thực (IP, Thiết bị, Trạng thái SUCCESS/WRONG_HWID/EXPIRED/REVOKED, Thời gian).
+
+---
