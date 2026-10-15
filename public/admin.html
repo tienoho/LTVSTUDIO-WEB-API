@@ -99,8 +99,8 @@
         <a href="/lookup" class="nav-link">
           <i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền
         </a>
-        <a href="/docs" class="nav-link">
-          <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
+        <a href="/docs" class="nav-link" id="navDocsLink">
+          <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API <span class="admin-badge-tiny">Admin</span>
         </a>
         <a href="/admin" class="nav-link admin-nav-btn active">
           <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
@@ -263,15 +263,18 @@
         </div>
 
         <!-- Admin Tabs Navigation -->
-        <div class="admin-subtabs">
+                <div class="admin-subtabs">
           <button class="subtab-btn active" data-subtab="subtab-licenses">
             <i class="fa-solid fa-list-check"></i> Danh Sách Bản Quyền
           </button>
           <button class="subtab-btn" data-subtab="subtab-version">
             <i class="fa-solid fa-cloud-arrow-up"></i> Cấu Hình Cập Nhật (OTA)
           </button>
-          <a href="/docs" class="subtab-btn" style="text-decoration: none;">
-            <i class="fa-solid fa-book"></i> Xem Tài Liệu API &rarr;
+          <button class="subtab-btn" data-subtab="subtab-docs">
+            <i class="fa-solid fa-book-bookmark"></i> Tài Liệu Tích Hợp API
+          </button>
+          <a href="/docs" target="_blank" class="subtab-btn-link" title="Mở trang tài liệu API độc lập" style="margin-left: auto; text-decoration: none; display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; color: var(--accent-cyan); font-weight: 600;">
+            <span>Mở Trang Độc Lập</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
           </a>
         </div>
 
@@ -399,6 +402,101 @@
                 </div>
               </div>
             </div>
+        <!-- SUBTAB 3: INTEGRATED API DOCUMENTATION (DÀNH CHO ADMIN) -->
+        <div class="subtab-pane" id="subtab-docs" style="display: none;">
+          <div class="docs-section-card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+              <div>
+                <h2><i class="fa-solid fa-network-wired text-cyan"></i> Tài Liệu Tích Hợp API Quản Trị &amp; Khách Hàng</h2>
+                <p style="margin-bottom: 0;">Xem và sao chép cấu trúc endpoint, chữ ký HMAC-SHA256, và mã nguồn tích hợp vào ứng dụng PodStudio Transform.</p>
+              </div>
+              <a href="/docs" target="_blank" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở Trang Đầy Đủ
+              </a>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+              <div class="endpoint-pill" style="justify-content: space-between;">
+                <div><span class="method-badge method-get">PRODUCTION</span> <span style="color:#38bdf8;">https://ltvstudio-web-api.vercel.app</span></div>
+                <button class="btn-copy-code" data-copy="https://ltvstudio-web-api.vercel.app" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+              </div>
+              <div class="endpoint-pill" style="justify-content: space-between;">
+                <div><span class="method-badge method-post">LOCAL VPS</span> <span style="color:#a78bfa;">http://localhost:8080</span></div>
+                <button class="btn-copy-code" data-copy="http://localhost:8080" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ENDPOINTS GRID -->
+          <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+            <!-- 1. OTA VERSION -->
+            <div class="docs-section-card">
+              <h3><i class="fa-solid fa-cloud-arrow-down text-cyan"></i> 1. Kiểm Tra Phiên Bản Cập Nhật (OTA)</h3>
+              <div class="endpoint-pill"><span class="method-badge method-get">GET</span> <span>/api/transform/version</span></div>
+              <p>Trả về phiên bản phần mềm mới nhất, URL tải bộ cài Windows Setup và nội dung nhật ký cập nhật.</p>
+              <div class="code-preview-wrapper">
+                <pre><code>curl -s https://ltvstudio-web-api.vercel.app/api/transform/version</code></pre>
+                <button class="btn-copy-code" data-copy="curl -s https://ltvstudio-web-api.vercel.app/api/transform/version" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+              </div>
+            </div>
+
+            <!-- 2. VERIFY HWID -->
+            <div class="docs-section-card">
+              <h3><i class="fa-solid fa-key text-cyan"></i> 2. Xác Thực Bản Quyền &amp; Khóa Thiết Bị (HWID)</h3>
+              <div class="endpoint-pill"><span class="method-badge method-post">POST</span> <span>/api/auth/verify</span></div>
+              <p>Client máy tính gửi mã bản quyền và mã máy (Machine ID / HWID) để mở khóa tính năng.</p>
+              <div class="code-preview-wrapper">
+                <pre><code>curl -X POST https://ltvstudio-web-api.vercel.app/api/auth/verify \
+  -H "Content-Type: application/json" \
+  -d '{"licenseKey": "LTV-PRO-8888-9999-LIFETIME", "machineId": "WIN-UUID-4A7F-9B21"}'</code></pre>
+                <button class="btn-copy-code" data-copy="curl -X POST https://ltvstudio-web-api.vercel.app/api/auth/verify -H &quot;Content-Type: application/json&quot; -d '{\&quot;licenseKey\&quot;: \&quot;LTV-PRO-8888-9999-LIFETIME\&quot;, \&quot;machineId\&quot;: \&quot;WIN-UUID-4A7F-9B21\&quot;}'" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+              </div>
+            </div>
+
+            <!-- 3. PUBLIC LOOKUP -->
+            <div class="docs-section-card">
+              <h3><i class="fa-solid fa-magnifying-glass text-cyan"></i> 3. Cổng Tra Cứu Công Khai (Public Lookup)</h3>
+              <div class="endpoint-pill"><span class="method-badge method-get">GET</span> <span>/api/license/lookup?key=...</span></div>
+              <p>Tra cứu thông tin gói cước, hạn dùng và mã phần cứng được che (Masked HWID) bảo mật quyền riêng tư.</p>
+              <div class="code-preview-wrapper">
+                <pre><code>curl -s "https://ltvstudio-web-api.vercel.app/api/license/lookup?key=LTV-PRO-8888-9999-LIFETIME"</code></pre>
+                <button class="btn-copy-code" data-copy="curl -s &quot;https://ltvstudio-web-api.vercel.app/api/license/lookup?key=LTV-PRO-8888-9999-LIFETIME&quot;" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+              </div>
+            </div>
+
+            <!-- 4. ADMIN RESTFUL CRUD -->
+            <div class="docs-section-card">
+              <h3><i class="fa-solid fa-user-shield text-cyan"></i> 4. Danh Mục API Quản Trị Hệ Thống (Admin Endpoints)</h3>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem;">
+                <div class="endpoint-pill" style="justify-content: space-between;">
+                  <div><span class="method-badge method-post">POST</span> <span>/api/admin/login</span></div>
+                  <span style="color: var(--text-muted); font-size: 0.82rem;">Đăng nhập quản trị viên &amp; nhận Bearer Token</span>
+                </div>
+                <div class="endpoint-pill" style="justify-content: space-between;">
+                  <div><span class="method-badge method-get">GET</span> <span>/api/admin/stats</span></div>
+                  <span style="color: var(--text-muted); font-size: 0.82rem;">Chỉ số thống kê KPI toàn hệ thống</span>
+                </div>
+                <div class="endpoint-pill" style="justify-content: space-between;">
+                  <div><span class="method-badge method-get">GET</span> <span>/api/admin/licenses</span></div>
+                  <span style="color: var(--text-muted); font-size: 0.82rem;">Danh sách key có bộ lọc trạng thái và gói</span>
+                </div>
+                <div class="endpoint-pill" style="justify-content: space-between;">
+                  <div><span class="method-badge method-post">POST</span> <span>/api/admin/licenses/create</span></div>
+                  <span style="color: var(--text-muted); font-size: 0.82rem;">Phát hành key đơn hoặc tạo hàng loạt</span>
+                </div>
+                <div class="endpoint-pill" style="justify-content: space-between;">
+                  <div><span class="method-badge method-put">PUT</span> <span>/api/admin/licenses/:key</span></div>
+                  <span style="color: var(--text-muted); font-size: 0.82rem;">Cập nhật, gia hạn ngày, reset mã HWID</span>
+                </div>
+                <div class="endpoint-pill" style="justify-content: space-between;">
+                  <div><span class="method-badge method-delete">DELETE</span> <span>/api/admin/licenses/:key</span></div>
+                  <span style="color: var(--text-muted); font-size: 0.82rem;">Xóa vĩnh viễn key khỏi cơ sở dữ liệu</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
 
             <!-- Live Desktop Dialog Preview -->
             <div class="preview-desktop-box">

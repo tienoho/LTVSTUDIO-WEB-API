@@ -1009,4 +1009,24 @@ Chúc bạn có những trải nghiệm tuyệt vời cùng PodStudio Transform!
 
   // Initial Session Check
   checkAdminSession();
+
+  // ── COPY CODE BUTTONS FOR INTEGRATED DOCS ──────────────────
+  document.querySelectorAll('.btn-copy-code').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const codeText = btn.getAttribute('data-copy') || (btn.previousElementSibling ? btn.previousElementSibling.textContent : '');
+      if (!codeText) return;
+
+      navigator.clipboard.writeText(codeText.trim()).then(() => {
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = 'fa-solid fa-check text-emerald';
+        showToast('✓ Đã sao chép vào clipboard!', 'success');
+        setTimeout(() => {
+          if (icon) icon.className = 'fa-regular fa-copy';
+        }, 1800);
+      }).catch(err => {
+        showToast('Không thể sao chép: ' + err.message, 'error');
+      });
+    });
+  });
+
 });

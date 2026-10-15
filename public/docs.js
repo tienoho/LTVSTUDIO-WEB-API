@@ -1,9 +1,27 @@
 /**
- * LTVStudio Cloud Portal - Developer Docs Module
- * Handles code copying, interactive language switching, and documentation navigation.
+ * LTVStudio Cloud Portal - Developer Docs Module (Admin Protected)
+ * Handles admin session authentication, interactive copy, scrollspy and docs rendering.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Authentication Elements
+  const docsAuthRequiredCard = document.getElementById('docsAuthRequiredCard');
+  const docsProtectedContent = document.getElementById('docsProtectedContent');
+  const docsLoginForm = document.getElementById('docsLoginForm');
+  const adminDocsUsername = document.getElementById('adminDocsUsername');
+  const adminDocsSecret = document.getElementById('adminDocsSecret');
+  const btnSubmitDocsAuth = document.getElementById('btnSubmitDocsAuth');
+  const docsAuthError = document.getElementById('docsAuthError');
+  const docsAuthErrorText = document.getElementById('docsAuthErrorText');
+  const btnToggleDocsSecret = document.getElementById('btnToggleDocsSecret');
+  const docsEyeIcon = document.getElementById('docsEyeIcon');
+
+  const docsSessionAdminName = document.getElementById('docsSessionAdminName');
+  const btnDocsLogout = document.getElementById('btnDocsLogout');
+  const navAdminProfilePill = document.getElementById('navAdminProfilePill');
+  const navAdminName = document.getElementById('navAdminName');
+  const btnNavLogout = document.getElementById('btnNavLogout');
+
   const toastContainer = document.getElementById('toastContainer');
   const navHealthPill = document.getElementById('navHealthPill');
   const healthCheckModal = document.getElementById('healthCheckModal');
@@ -12,13 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const healthContent = document.getElementById('healthContent');
 
   // ── TOAST NOTIFICATIONS ────────────────────────────────────
-  function showToast(message, type = 'info', duration = 2500) {
+  function showToast(message, type = 'info', duration = 2800) {
     if (!toastContainer) return;
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
 
     let icon = 'fa-solid fa-circle-check';
     if (type === 'error') icon = 'fa-solid fa-triangle-exclamation';
+    if (type === 'info') icon = 'fa-solid fa-circle-info';
 
     toast.innerHTML = `
       <div class="toast-icon"><i class="${icon}"></i></div>
@@ -41,6 +60,135 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => toast.remove(), 250);
       }
     }, duration);
+  }
+
+  // ── ADMIN SESSION VERIFICATION ─────────────────────────────
+  async function checkAdminDocsAccess() {
+    const token = localStorage.getItem('ltv_admin_session_token');
+
+    if (!token) {
+      // Not logged in: show lock screen, hide protected content
+      showLockScreen();
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/verify-session', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (data.valid) {
+        // Authenticated: show protected content
+        unlockDocs(data.username || 'admin');
+      } else {
+        localStorage.removeItem('ltv_admin_session_token');
+        showLockScreen();
+      }
+    } catch (err) {
+      // Offline fallback: if secret exists, still require connection
+      showLockScreen();
+    }
+  }
+
+  function showLockScreen() {
+    if (docsAuthRequiredCard) docsAuthRequiredCard.style.display = 'flex';
+    if (docsProtectedContent) docsProtectedContent.style.display = 'none';
+    if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
+  }
+
+  function unlockDocs(username) {
+    if (docsAuthRequiredCard) docsAuthRequiredCard.style.display = 'none';
+    if (docsProtectedContent) docsProtectedContent.style.display = 'block';
+    if (docsSessionAdminName) docsSessionAdminName.textContent = username;
+    if (navAdminProfilePill) {
+      navAdminProfilePill.style.display = 'inline-flex';
+      if (navAdminName) navAdminName.textContent = username;
+    }
+  }
+
+  // ── INLINE ADMIN LOGIN SUBMISSION ──────────────────────────
+  if (docsLoginForm) {
+    docsLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = (adminDocsUsername ? adminDocsUsername.value : 'admin').trim();
+      const secret = (adminDocsSecret ? adminDocsSecret.value : '').trim();
+
+      if (!secret) {
+        if (docsAuthError) {
+          docsAuthError.style.display = 'flex';
+          if (docsAuthErrorText) docsAuthErrorText.textContent = 'Vui lòng nhập mật khẩu hoặc Secret Key quản trị';
+        }
+        return;
+      }
+
+      if (btnSubmitDocsAuth) {
+        btnSubmitDocsAuth.disabled = true;
+        btnSubmitDocsAuth.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xác thực...';
+      }
+      if (docsAuthError) docsAuthError.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, secret })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          localStorage.setItem('ltv_admin_session_token', data.token);
+          localStorage.setItem('ltv_admin_secret', secret);
+          showToast('✓ Đăng nhập quản trị thành công! Đã mở khóa tài liệu API.', 'success');
+          unlockDocs(username);
+        } else {
+          if (docsAuthError) {
+            docsAuthError.style.display = 'flex';
+            if (docsAuthErrorText) docsAuthErrorText.textContent = data.message || 'Mật khẩu quản trị không chính xác';
+          }
+        }
+      } catch (err) {
+        if (docsAuthError) {
+          docsAuthError.style.display = 'flex';
+          if (docsAuthErrorText) docsAuthErrorText.textContent = 'Lỗi kết nối máy chủ: ' + err.message;
+        }
+      } finally {
+        if (btnSubmitDocsAuth) {
+          btnSubmitDocsAuth.disabled = false;
+          btnSubmitDocsAuth.innerHTML = '<i class="fa-solid fa-unlock-keyhole"></i> Đăng Nhập &amp; Mở Khóa Tài Liệu';
+        }
+      }
+    });
+  }
+
+  // ── LOGOUT ACTIONS ─────────────────────────────────────────
+  async function handleDocsLogout() {
+    const token = localStorage.getItem('ltv_admin_session_token');
+    if (token) {
+      try {
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+      } catch (e) {}
+    }
+    localStorage.removeItem('ltv_admin_session_token');
+    localStorage.removeItem('ltv_admin_secret');
+    showLockScreen();
+    showToast('Đã đăng xuất tài khoản quản trị viên.', 'info');
+  }
+
+  if (btnDocsLogout) btnDocsLogout.addEventListener('click', handleDocsLogout);
+  if (btnNavLogout) btnNavLogout.addEventListener('click', handleDocsLogout);
+
+  // ── PASSWORD VISIBILITY TOGGLE ─────────────────────────────
+  if (btnToggleDocsSecret && adminDocsSecret && docsEyeIcon) {
+    btnToggleDocsSecret.addEventListener('click', () => {
+      const isPassword = adminDocsSecret.type === 'password';
+      adminDocsSecret.type = isPassword ? 'text' : 'password';
+      docsEyeIcon.className = isPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+    });
   }
 
   // ── COPY CODE BUTTONS ──────────────────────────────────────
@@ -111,4 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
       healthCheckModal.classList.remove('active');
     });
   }
+
+  // Initial access check
+  checkAdminDocsAccess();
 });

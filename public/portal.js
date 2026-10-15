@@ -130,4 +130,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load initial version data
   loadPublicVersion();
+
+  // ── ADMIN NAVBAR REVEAL (DOCS ACCESS CONTROL) ──────────────
+  async function checkAdminSessionPortal() {
+    const token = localStorage.getItem('ltv_admin_session_token');
+    const navDocsLink = document.getElementById('navDocsLink');
+    const navAdminProfilePill = document.getElementById('navAdminProfilePill');
+    const navAdminName = document.getElementById('navAdminName');
+    const btnNavLogout = document.getElementById('btnNavLogout');
+
+    if (!token) {
+      if (navDocsLink) navDocsLink.style.display = 'none';
+      if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/verify-session', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.valid) {
+        if (navDocsLink) navDocsLink.style.display = 'inline-flex';
+        if (navAdminProfilePill) {
+          navAdminProfilePill.style.display = 'inline-flex';
+          if (navAdminName) navAdminName.textContent = data.username || 'Admin';
+        }
+      } else {
+        localStorage.removeItem('ltv_admin_session_token');
+        if (navDocsLink) navDocsLink.style.display = 'none';
+        if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
+      }
+    } catch (e) {
+      // Offline fallback: keep quiet
+    }
+
+    if (btnNavLogout) {
+      btnNavLogout.onclick = async () => {
+        const curToken = localStorage.getItem('ltv_admin_session_token');
+        if (curToken) {
+          try {
+            await fetch('/api/admin/logout', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${curToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({})
+            });
+          } catch (e) {}
+        }
+        localStorage.removeItem('ltv_admin_session_token');
+        localStorage.removeItem('ltv_admin_secret');
+        window.location.reload();
+      };
+    }
+  }
+
+  checkAdminSessionPortal();
+
 });

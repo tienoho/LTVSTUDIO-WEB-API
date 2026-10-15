@@ -125,8 +125,8 @@
         <a href="/lookup" class="nav-link active">
           <i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền
         </a>
-        <a href="/docs" class="nav-link">
-          <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
+        <a href="/docs" class="nav-link" id="navDocsLink" style="display: none;">
+          <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API <span class="admin-badge-tiny">Admin</span>
         </a>
         <a href="/admin" class="nav-link admin-nav-btn">
           <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
@@ -134,6 +134,19 @@
       </nav>
 
       <div class="nav-actions">
+                <!-- Admin Profile Pill -->
+        <div class="admin-profile-pill" id="navAdminProfilePill" style="display: none;">
+          <div class="admin-avatar-box">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div class="admin-pill-info">
+            <span class="admin-pill-name" id="navAdminName">Admin</span>
+            <span class="admin-pill-badge">Online</span>
+          </div>
+          <button class="btn-pill-logout" id="btnNavLogout" title="Đăng xuất quản trị viên">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
         <div class="health-pill" id="navHealthPill" title="Bấm để xem trạng thái máy chủ & CSDL">
           <span class="status-indicator-dot"></span>
           <span id="healthPillText">API Online</span>

@@ -1,5 +1,165 @@
 [
   {
+    "id": 1792057355572,
+    "licenseKey": "BRUTE_FORCE_BLOCKED",
+    "machineId": "BLOCKED",
+    "ipAddress": "::1",
+    "status": "BLOCKED_BRUTE_FORCE",
+    "message": "IP bị khóa do thử sai quá 5 lần (Retry after 900s)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.166Z"
+  },
+  {
+    "id": 1792057355335,
+    "licenseKey": "LTV-FAKE-BRUTE-FORCE-5",
+    "machineId": "HWID-VALID-123456",
+    "ipAddress": "::1",
+    "status": "NOT_FOUND",
+    "message": "Mã không tồn tại",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.162Z"
+  },
+  {
+    "id": 1792057355964,
+    "licenseKey": "LTV-FAKE-BRUTE-FORCE-4",
+    "machineId": "HWID-VALID-123456",
+    "ipAddress": "::1",
+    "status": "NOT_FOUND",
+    "message": "Mã không tồn tại",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.158Z"
+  },
+  {
+    "id": 1792057355264,
+    "licenseKey": "LTV-FAKE-BRUTE-FORCE-3",
+    "machineId": "HWID-VALID-123456",
+    "ipAddress": "::1",
+    "status": "NOT_FOUND",
+    "message": "Mã không tồn tại",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.154Z"
+  },
+  {
+    "id": 1792057355933,
+    "licenseKey": "LTV-FAKE-BRUTE-FORCE-2",
+    "machineId": "HWID-VALID-123456",
+    "ipAddress": "::1",
+    "status": "NOT_FOUND",
+    "message": "Mã không tồn tại",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.151Z"
+  },
+  {
+    "id": 1792057355707,
+    "licenseKey": "LTV-FAKE-BRUTE-FORCE-1",
+    "machineId": "HWID-VALID-123456",
+    "ipAddress": "::1",
+    "status": "NOT_FOUND",
+    "message": "Mã không tồn tại",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.149Z"
+  },
+  {
+    "id": 1792057355943,
+    "licenseKey": "LTV-PRO-76F0E3-E53CD8-FD01CF",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.145Z"
+  },
+  {
+    "id": 1792057356013,
+    "licenseKey": "LTV-PRO-76F0E3-E53CD8-FD01CF",
+    "machineId": "12345678",
+    "ipAddress": "::1",
+    "status": "INVALID_HWID",
+    "message": "Mã HWID không an toàn hoặc là giá trị mẫu.",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.125Z"
+  },
+  {
+    "id": 1792057355877,
+    "licenseKey": "LTV-PRO-76F0E3-E53CD8-FD01CF",
+    "machineId": "123",
+    "ipAddress": "::1",
+    "status": "INVALID_HWID",
+    "message": "Mã HWID quá ngắn (tối thiểu 8 ký tự bảo mật).",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.122Z"
+  },
+  {
+    "id": 1792057355829,
+    "licenseKey": "LTV-PRO-76F0E3-E53CD8-FD01CF",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:35.118Z"
+  },
+  {
+    "id": 1792057348706,
+    "licenseKey": "LTV-PRO-4355FF-4917A0-8B8205",
+    "machineId": "HWID-PC-ATTACKER-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: HWID-PC-OFFICE-01)",
+    "userAgent": "HackerTool/2.0",
+    "createdAt": "2026-10-15T09:42:27.842Z"
+  },
+  {
+    "id": 1792057347907,
+    "licenseKey": "LTV-PRO-4355FF-4917A0-8B8205",
+    "machineId": "HWID-PC-OFFICE-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "LTVStudio-Desktop/1.0",
+    "createdAt": "2026-10-15T09:42:27.838Z"
+  },
+  {
+    "id": 1792057327832,
+    "licenseKey": "LTV-1Y-3F1DB8-F70F5D-54071F",
+    "machineId": "WIN-FRAUD-PC-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: WIN-UUID-MASTER-PC-01)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:07.193Z"
+  },
+  {
+    "id": 1792057327701,
+    "licenseKey": "LTV-1Y-3F1DB8-F70F5D-54071F",
+    "machineId": "WIN-UUID-MASTER-PC-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:42:07.189Z"
+  },
+  {
+    "id": 1792056873856,
+    "licenseKey": "LTV-1Y-7B8BA1-849AF3-1F5570",
+    "machineId": "WIN-FRAUD-PC-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: WIN-UUID-MASTER-PC-01)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:34:33.843Z"
+  },
+  {
+    "id": 1792056874586,
+    "licenseKey": "LTV-1Y-7B8BA1-849AF3-1F5570",
+    "machineId": "WIN-UUID-MASTER-PC-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T09:34:33.840Z"
+  },
+  {
     "id": 1792056647380,
     "licenseKey": "LTV-1Y-597BE0-F351D0-02D72C",
     "machineId": "WIN-FRAUD-PC-99",
