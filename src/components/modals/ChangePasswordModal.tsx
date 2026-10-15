@@ -59,7 +59,10 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       showToast(msg || 'Đổi mật khẩu thành công!', 'success');
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Đã xảy ra lỗi khi đổi mật khẩu.');
+      const msg = typeof err?.message === 'string' && err.message !== '[object Object]' && err.message.trim()
+        ? err.message.trim()
+        : 'Đã xảy ra lỗi khi đổi mật khẩu.';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }

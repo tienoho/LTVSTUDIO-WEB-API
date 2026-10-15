@@ -104,7 +104,10 @@ export const AdminPage: React.FC = () => {
       showToast(`Đăng nhập thành công với vai trò ${selectedRole}!`, 'success');
       setSecret('');
     } catch (err: any) {
-      setLoginError(err?.message || 'Mã Quản trị viên, tài khoản hoặc mật khẩu không chính xác!');
+      const msg = typeof err?.message === 'string' && err.message !== '[object Object]' && err.message.trim()
+        ? err.message.trim()
+        : (typeof err === 'string' ? err : 'Mã Quản trị viên, tài khoản hoặc mật khẩu không chính xác!');
+      setLoginError(msg);
     } finally {
       setIsLoggingIn(false);
     }

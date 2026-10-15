@@ -24,12 +24,25 @@ export class HttpContext {
 
     const host = req.headers.host || 'localhost';
     const parsedUrl = new URL(req.url || '/', `http://${host}`);
-    this.pathname = parsedUrl.pathname || '/';
+    let path = parsedUrl.pathname || '/';
 
     const q: Record<string, string | string[]> = {};
     parsedUrl.searchParams.forEach((val, key) => {
       q[key] = val;
     });
+
+    // Vercel Serverless Function & Rewrite Compatibility
+    const matchedPath = req.headers['x-matched-path'];
+    if (typeof matchedPath === 'string' && matchedPath.startsWith('/api')) {
+      path = matchedPath.split('?')[0];
+    } else if (q.slug) {
+      const slugVal = Array.isArray(q.slug) ? q.slug.join('/') : q.slug;
+      if (slugVal && !path.includes(slugVal)) {
+        path = '/api/' + slugVal;
+      }
+    }
+
+    this.pathname = path;
     this.query = q;
 
     // Detect client IP safely

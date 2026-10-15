@@ -56,9 +56,8 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
 
   // 2. Proactive Path Traversal Check (CWE-22)
   try {
-    const rawUrl = req.url || '';
-    const decodedUrl = decodeURIComponent(rawUrl);
-    if (decodedUrl.includes('..') || rawUrl.includes('..')) {
+    const decodedPath = decodeURIComponent(pathname);
+    if (decodedPath.includes('..') || pathname.includes('..')) {
       res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('403 Forbidden: Path traversal attempt blocked.');
       return;
@@ -77,14 +76,22 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
     const ext = path.extname(targetPath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     res.setHeader('Cache-Control', 'no-cache, must-revalidate');
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.setHeader('Content-Type', contentType);
     const stream = fs.createReadStream(targetPath);
-    stream.on('error', () => {
+    stream.on('open', () => {
+      if (!res.headersSent) {
+        res.writeHead(200);
+      }
+    });
+    stream.on('error', (err) => {
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'text/plain' });
         res.end('500 Internal Server Error');
+      } else {
+        res.destroy();
       }
     });
+    req.on('close', () => stream.destroy());
     stream.pipe(res);
   };
 
@@ -136,11 +143,15 @@ process.on('exit', (code) => {
 });
 
 process.on('SIGINT', () => {
-  console.log('[Process Signal] Received SIGINT');
+  console.log('[Process Signal] Received SIGINT, shutting down cleanly...');
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 1500).unref();
 });
 
 process.on('SIGTERM', () => {
-  console.log('[Process Signal] Received SIGTERM');
+  console.log('[Process Signal] Received SIGTERM, shutting down cleanly...');
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 1500).unref();
 });
 
 if (!process.env.VERCEL) {

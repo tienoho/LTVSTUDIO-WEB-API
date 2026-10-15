@@ -52,7 +52,22 @@ export async function apiRequest<T = any>(
     if (response.status === 401 && endpoint !== '/api/admin/login' && typeof window !== 'undefined') {
       window.dispatchEvent(new Event('auth:unauthorized'));
     }
-    const errorMsg = responseData?.message || responseData?.error || `Lỗi máy chủ (${response.status})`;
+    let errorMsg = `Lỗi máy chủ (${response.status})`;
+    if (typeof responseData === 'string' && responseData.trim()) {
+      errorMsg = responseData.trim();
+    } else if (responseData && typeof responseData === 'object') {
+      if (typeof responseData.message === 'string' && responseData.message.trim()) {
+        errorMsg = responseData.message.trim();
+      } else if (typeof responseData.error === 'string' && responseData.error.trim()) {
+        errorMsg = responseData.error.trim();
+      } else if (responseData.error && typeof responseData.error.message === 'string' && responseData.error.message.trim()) {
+        errorMsg = responseData.error.message.trim();
+      } else if (Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+        const first = responseData.errors[0];
+        errorMsg = typeof first === 'string' ? first : (first?.message || `Lỗi máy chủ (${response.status})`);
+      }
+    }
+
     const error: any = new Error(errorMsg);
     error.status = response.status;
     error.data = responseData;

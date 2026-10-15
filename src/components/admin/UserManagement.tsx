@@ -86,7 +86,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onOpenChangePass
       setNewRole('Support');
       fetchUsers();
     } catch (err: any) {
-      setCreateError(err?.message || 'Lỗi khi tạo tài khoản.');
+      const msg = typeof err?.message === 'string' && err.message !== '[object Object]' && err.message.trim()
+        ? err.message.trim()
+        : 'Lỗi khi tạo tài khoản.';
+      setCreateError(msg);
     } finally {
       setIsSubmitting(false);
     }

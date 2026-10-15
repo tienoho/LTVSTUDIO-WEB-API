@@ -21,7 +21,10 @@ export const LookupPage: React.FC = () => {
       const data = await LicenseService.lookup(searchKey.trim().toUpperCase());
       setResult(data);
     } catch (err: any) {
-      setError(err?.message || 'Không thể tra cứu thông tin bản quyền.');
+      const msg = typeof err?.message === 'string' && err.message !== '[object Object]' && err.message.trim()
+        ? err.message.trim()
+        : 'Không thể tra cứu thông tin bản quyền.';
+      setError(msg);
       setResult(null);
     } finally {
       setIsLoading(false);
