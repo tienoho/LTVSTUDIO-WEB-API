@@ -115,12 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let extendResolver = null;
   let isExtendLifetime = false;
 
-  // Admin Auth Modal
-  const adminAuthModal = document.getElementById('adminAuthModal');
-  const btnChangeAdminSecret = document.getElementById('btnChangeAdminSecret');
-  const btnCloseAuthModal = document.getElementById('btnCloseAuthModal');
-  const adminSecretInput = document.getElementById('adminSecretInput');
-  const btnSubmitAdminAuth = document.getElementById('btnSubmitAdminAuth');
 
   // Backup Elements
   const btnExportBackup = document.getElementById('btnExportBackup');

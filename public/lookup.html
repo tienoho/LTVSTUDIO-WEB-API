@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tra Cứu Bản Quyền - LTVStudio Cloud Portal</title>
+  <meta name="description" content="Cổng tra cứu bản quyền chính hãng LTVStudio và PodStudio Transform. Kiểm tra thời hạn, gói dịch vụ, thiết bị phần cứng (HWID) và trạng thái kích hoạt.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .lookup-page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+    .lookup-chips-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .lookup-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .lookup-chip:hover {
+      background: rgba(0, 242, 254, 0.12);
+      border-color: rgba(0, 242, 254, 0.4);
+      color: #00f2fe;
+    }
+    .guide-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2.5rem;
+    }
+    .guide-step-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .guide-step-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(0, 242, 254, 0.4);
+    }
+    .step-number-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(79, 172, 254, 0.2));
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      color: #00f2fe;
+      font-weight: 800;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+    .faq-container {
+      margin-top: 3rem;
+    }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 0.85rem;
+    }
+    .faq-item h4 {
+      font-size: 0.98rem;
+      color: #f1f5f9;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .faq-item p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient Fluid Orbs -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Main Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand" id="brandLogo" style="text-decoration: none;">
+        <div class="logo-box">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">LTVStudio</span>
+          <span class="brand-tag">Cloud Portal</span>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <a href="/" class="nav-link">
+          <i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về
+        </a>
+        <a href="/lookup" class="nav-link active">
+          <i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền
+        </a>
+        <a href="/docs" class="nav-link">
+          <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
+        </a>
+        <a href="/admin" class="nav-link admin-nav-btn">
+          <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
+        </a>
+      </nav>
+
+      <div class="nav-actions">
+        <div class="health-pill" id="navHealthPill" title="Bấm để xem trạng thái máy chủ & CSDL">
+          <span class="status-indicator-dot"></span>
+          <span id="healthPillText">API Online</span>
+        </div>
+        <a href="/#download" class="btn btn-sm btn-glow" id="navDownloadBtn">
+          <i class="fa-solid fa-download"></i> Tải Cho Windows
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-body">
+    <div class="lookup-page-wrapper">
+      <!-- Header -->
+      <div class="lookup-header text-center" style="margin-bottom: 2rem;">
+        <div class="lookup-icon-box" style="margin: 0 auto 1.25rem;">
+          <i class="fa-solid fa-key"></i>
+        </div>
+        <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.6rem; background: linear-gradient(135deg, #fff 30%, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          Tra Cứu Bản Quyền Trực Tuyến
+        </h1>
+        <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto; font-size: 0.95rem;">
+          Nhập mã kích hoạt (License Key) của bạn để kiểm tra tình trạng hiệu lực, gói dịch vụ, thời hạn sử dụng và thiết bị máy tính đã gán (HWID).
+        </p>
+      </div>
+
+      <!-- Search Input Card -->
+      <div class="lookup-input-card">
+        <div class="input-wrapper">
+          <i class="fa-solid fa-fingerprint"></i>
+          <input type="text" id="publicLookupInput" placeholder="VD: LTV-PRO-8888-9999-LIFETIME" autocomplete="off" spellcheck="false">
+          <button class="btn-clear-input" id="btnClearLookupInput" style="display: none;" title="Xóa"><i class="fa-solid fa-xmark"></i></button>
+          <button class="btn btn-primary" id="btnPerformLookup">
+            <i class="fa-solid fa-magnifying-glass"></i> Tra Cứu Ngay
+          </button>
+        </div>
+        <div class="lookup-chips-row">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Mã thử nghiệm nhanh:</span>
+          <span class="lookup-chip" data-key="LTV-PRO-8888-9999-LIFETIME">LTV-PRO-8888-9999-LIFETIME</span>
+          <span class="lookup-chip" data-key="PODSTUDIO-PRO-2026">PODSTUDIO-PRO-2026</span>
+          <span class="lookup-chip" data-key="DEV-MASTER-BYPASS">DEV-MASTER-BYPASS</span>
+        </div>
+        <div class="lookup-hint" style="margin-top: 1rem; text-align: center;">
+          <i class="fa-solid fa-shield-check" style="color: #00f2fe;"></i> Hệ thống tự động mã hóa bảo mật thông tin thiết bị phần cứng (HWID Masking).
+        </div>
+      </div>
+
+      <!-- Result Card -->
+      <div class="lookup-result-card" id="lookupResultCard" style="display: none; margin-top: 1.75rem;">
+        <div class="result-badge-row">
+          <span class="badge" id="resStatusBadge">HỢP LỆ</span>
+          <span class="plan-tag" id="resPlanTag">LIFETIME</span>
+          <span class="verified-tag"><i class="fa-solid fa-certificate"></i> Chính Hãng LTVStudio</span>
+        </div>
+
+        <div class="result-key-display">
+          <span class="code-mono" id="resKeyText">LTV-XXXX-XXXX-XXXX</span>
+          <button class="btn-copy-interactive" id="btnCopyResultKey" title="Sao chép mã">
+            <i class="fa-regular fa-copy"></i>
+            <span class="copy-tooltip">Sao chép</span>
+          </button>
+        </div>
+
+        <div class="result-details-grid">
+          <div class="result-item">
+            <span class="label">Khách Hàng / Ghi Chú:</span>
+            <strong id="resCustomer">Đang cập nhật</strong>
+          </div>
+          <div class="result-item">
+            <span class="label">Gói Dịch Vụ:</span>
+            <strong id="resType">LTVStudio Pro Lifetime</strong>
+          </div>
+          <div class="result-item">
+            <span class="label">Hạn Sử Dụng:</span>
+            <strong id="resExpires">Không giới hạn (Lifetime)</strong>
+          </div>
+          <div class="result-item">
+            <span class="label">Thời Gian Còn Lại:</span>
+            <strong class="text-cyan" id="resDaysLeft">Vĩnh viễn</strong>
+          </div>
+          <div class="result-item">
+            <span class="label">Thiết Bị Gắn (HWID):</span>
+            <strong id="resMachine">WIN-****-001 (Đã khóa máy)</strong>
+          </div>
+          <div class="result-item">
+            <span class="label">Lần Kích Hoạt Cuối:</span>
+            <strong id="resLastActivated">--</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activation Guide Steps -->
+      <div style="margin-top: 3.5rem;">
+        <h3 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; text-align: center;">
+          <i class="fa-solid fa-circle-question text-cyan"></i> Hướng Dẫn Kích Hoạt Trên Ứng Dụng Desktop
+        </h3>
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+          Thực hiện 3 bước đơn giản để mở khóa toàn bộ tính năng cao cấp của PodStudio Transform.
+        </p>
+
+        <div class="guide-steps-grid">
+          <div class="guide-step-card">
+            <div class="step-number-badge">1</div>
+            <h4 style="margin-bottom: 0.5rem; color: #f8fafc;">Khởi Động Ứng Dụng</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              Mở phần mềm <strong>PodStudio Transform</strong> trên máy tính Windows hoặc macOS. Nhấp vào biểu tượng <em>Cài Đặt / Bản Quyền</em>.
+            </p>
+          </div>
+
+          <div class="guide-step-card">
+            <div class="step-number-badge">2</div>
+            <h4 style="margin-bottom: 0.5rem; color: #f8fafc;">Dán Mã Bản Quyền</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              Dán mã License Key bạn đã nhận được vào ô <em>Mã Bản Quyền</em> và nhấn nút <strong>Xác Thực Bản Quyền</strong>.
+            </p>
+          </div>
+
+          <div class="guide-step-card">
+            <div class="step-number-badge">3</div>
+            <h4 style="margin-bottom: 0.5rem; color: #f8fafc;">Khóa Thiết Bị &amp; Sử Dụng</h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              Hệ thống tự động liên kết với mã máy tính (HWID). Mọi tính năng chuyển giọng nói AI, dịch thuật tự động sẽ được mở khóa vĩnh viễn!
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ Section -->
+      <div class="faq-container">
+        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: #f8fafc;">
+          <i class="fa-solid fa-circle-info text-cyan"></i> Câu Hỏi Thường Gặp (FAQ)
+        </h3>
+        <div class="faq-item">
+          <h4><i class="fa-solid fa-question text-cyan"></i> Tôi có thể đổi máy tính sau khi đã kích hoạt không?</h4>
+          <p>
+            Mỗi mã bản quyền được bảo vệ an toàn bằng công nghệ khóa phần cứng (HWID Lock). Khi bạn cần chuyển sang máy tính mới hoặc cài lại Windows, vui lòng liên hệ bộ phận hỗ trợ kỹ thuật hoặc quản trị viên để được hỗ trợ reset HWID miễn phí.
+          </p>
+        </div>
+        <div class="faq-item">
+          <h4><i class="fa-solid fa-question text-cyan"></i> Gói Lifetime có cần trả phí gia hạn hàng tháng không?</h4>
+          <p>
+            Không. Gói Lifetime (Vĩnh Viễn) chỉ thanh toán một lần duy nhất và bạn được sử dụng trọn đời, đồng thời được cập nhật các phiên bản mới qua hệ thống OTA hoàn toàn miễn phí.
+          </p>
+        </div>
+        <div class="faq-item">
+          <h4><i class="fa-solid fa-question text-cyan"></i> Nếu tra cứu báo "Mã không tồn tại" thì phải làm sao?</h4>
+          <p>
+            Vui lòng kiểm tra lại chính xác các ký tự (không có khoảng trắng thừa). Nếu bạn vừa mua mã, có thể hệ thống đang đồng bộ trong vài giây. Nếu vẫn không được, vui lòng nhắn tin đến admin hỗ trợ để kiểm tra trạng thái đơn hàng.
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Health Check Modal -->
+  <div class="modal-overlay" id="healthCheckModal">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-heart-pulse text-cyan"></i> Trạng Thái Sức Khỏe Máy Chủ</h3>
+        <button class="modal-close" id="btnCloseHealthCheck">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="healthLoading" class="text-center py-4 text-muted">
+          <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+          <p style="margin-top: 0.8rem;">Đang kiểm tra kết nối API & CSDL...</p>
+        </div>
+        <div id="healthContent" style="display: none;">
+          <div class="health-status-banner" id="healthStatusBanner" style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; font-weight: 700;">
+            HỆ THỐNG HOẠT ĐỘNG HOÀN TOÀN BÌNH THƯỜNG
+          </div>
+          <div class="result-details-grid" style="grid-template-columns: 1fr;">
+            <div class="result-item"><span class="label">Trạng thái:</span> <strong id="healthStatusText">200 OK</strong></div>
+            <div class="result-item"><span class="label">Phiên bản API:</span> <strong id="healthApiVersion">v1.0.0</strong></div>
+            <div class="result-item"><span class="label">Cơ sở dữ liệu:</span> <strong id="healthDbProvider">Memory / Local JSON</strong></div>
+            <div class="result-item"><span class="label">Bộ nhớ sử dụng (RSS):</span> <strong id="healthMemoryRss">-- MB</strong></div>
+            <div class="result-item"><span class="label">Thời gian hoạt động (Uptime):</span> <strong id="healthUptime">--</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="lookup.js"></script>
+</body>
+</html>

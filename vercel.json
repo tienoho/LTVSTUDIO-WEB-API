@@ -1,8 +1,12 @@
 {
   "version": 2,
+  "cleanUrls": true,
   "rewrites": [
     { "source": "/api", "destination": "/api/index.ts" },
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
+    { "source": "/lookup", "destination": "/public/lookup.html" },
+    { "source": "/admin", "destination": "/public/admin.html" },
+    { "source": "/docs", "destination": "/public/docs.html" },
     { "source": "/(.*)", "destination": "/public/$1" }
   ],
   "headers": [

@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Trị Hệ Thống - LTVStudio Cloud Portal</title>
+  <meta name="description" content="Trung tâm quản trị bản quyền, khóa thiết bị phần cứng HWID và phát hành phiên bản cập nhật phần mềm LTVStudio.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-page-wrapper {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 1.5rem 1.5rem 4rem;
+    }
+    .admin-login-container {
+      min-height: 65vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .admin-login-box {
+      width: 100%;
+      max-width: 460px;
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 2.2rem;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+    }
+    .admin-login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .admin-login-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(79, 172, 254, 0.2));
+      border: 1px solid rgba(0, 242, 254, 0.35);
+      color: #00f2fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin: 0 auto 1.2rem;
+    }
+    .password-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .password-input-wrapper input {
+      padding-right: 2.8rem;
+    }
+    .btn-toggle-password {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.95rem;
+      padding: 4px;
+    }
+    .btn-toggle-password:hover {
+      color: #00f2fe;
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient Fluid Orbs -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Main Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand" id="brandLogo" style="text-decoration: none;">
+        <div class="logo-box">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">LTVStudio</span>
+          <span class="brand-tag">Cloud Portal</span>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <a href="/" class="nav-link">
+          <i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về
+        </a>
+        <a href="/lookup" class="nav-link">
+          <i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền
+        </a>
+        <a href="/docs" class="nav-link">
+          <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
+        </a>
+        <a href="/admin" class="nav-link admin-nav-btn active">
+          <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
+        </a>
+      </nav>
+
+      <div class="nav-actions">
+        <div class="admin-profile-pill" id="navAdminProfilePill" style="display: none;">
+          <div class="admin-avatar-box">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div class="admin-pill-info">
+            <span class="admin-pill-name" id="navAdminName">Admin</span>
+            <span class="admin-pill-badge">Online</span>
+          </div>
+          <button class="btn-pill-logout" id="btnNavLogout" title="Đăng xuất quản trị viên">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+        <div class="health-pill" id="navHealthPill" title="Bấm để xem trạng thái sức khỏe hệ thống & CSDL">
+          <span class="status-indicator-dot"></span>
+          <span id="healthPillText">API Online</span>
+        </div>
+        <a href="/#download" class="btn btn-sm btn-glow" id="navDownloadBtn">
+          <i class="fa-solid fa-download"></i> Tải Cho Windows
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-body">
+    <div class="admin-page-wrapper">
+      <!-- ========================================================
+           STATE A: ADMIN LOGIN FORM (KHI CHƯA ĐĂNG NHẬP)
+           ======================================================== -->
+      <div id="adminLoginSection" class="admin-login-container">
+        <div class="admin-login-box">
+          <div class="admin-login-header">
+            <div class="admin-login-icon">
+              <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.4rem; color: #f8fafc;">
+              Quản Trị Hệ Thống
+            </h2>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+              Đăng nhập tài khoản quản trị viên để quản lý mã bản quyền, thiết bị và phát hành bản cập nhật OTA.
+            </p>
+          </div>
+
+          <!-- Error Alert Banner -->
+          <div id="adminLoginError" class="login-error-banner" style="display: none; padding: 0.85rem 1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; font-size: 0.88rem; margin-bottom: 1.25rem;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span id="adminLoginErrorText">Mật khẩu không chính xác</span>
+          </div>
+
+          <form id="adminLoginForm" onsubmit="return false;">
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+              <label style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.4rem; display: block;">Tài khoản quản trị</label>
+              <input type="text" id="adminUsernameInput" value="admin" placeholder="Tài khoản..." autocomplete="username">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.4rem; display: block;">Mật khẩu hoặc Khóa Bí Mật</label>
+              <div class="password-input-wrapper">
+                <input type="password" id="adminSecretInput" placeholder="Nhập mật khẩu quản trị..." autocomplete="current-password">
+                <button type="button" class="btn-toggle-password" id="btnTogglePassword" title="Hiện/ẩn mật khẩu">
+                  <i class="fa-regular fa-eye" id="togglePasswordIcon"></i>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btnSubmitAdminAuth" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; justify-content: center;">
+              <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Quản Trị
+            </button>
+          </form>
+
+          <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255, 255, 255, 0.08); text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+            <i class="fa-solid fa-shield-halved" style="color: #00f2fe;"></i> Cơ chế bảo mật: Tự động khóa IP sau 5 lần đăng nhập thất bại.
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           STATE B: ADMIN DASHBOARD (KHI ĐÃ ĐĂNG NHẬP)
+           ======================================================== -->
+      <div id="adminDashboardSection" style="display: none;">
+        <!-- Admin Top Bar -->
+        <div class="admin-topbar">
+          <div>
+            <h2>Trung Tâm Quản Trị Hệ Thống</h2>
+            <p class="subtitle">Quản lý mã bản quyền, khóa thiết bị phần cứng (HWID) và phát hành phiên bản cập nhật LTVStudio</p>
+          </div>
+          <div class="admin-top-actions">
+            <button class="btn btn-outline" id="btnExportBackup" title="Tải file sao lưu CSDL">
+              <i class="fa-solid fa-download"></i> Sao Lưu JSON
+            </button>
+            <label class="btn btn-outline file-upload-btn" title="Nạp lại CSDL từ file JSON">
+              <i class="fa-solid fa-upload"></i> Khôi Phục JSON
+              <input type="file" id="importJsonInput" accept=".json" style="display: none;">
+            </label>
+            <button class="btn btn-primary" id="btnOpenCreateModal">
+              <i class="fa-solid fa-plus"></i> Phát Hành Key Mới
+            </button>
+            <button class="btn btn-outline-danger" id="btnAdminLogout" title="Đăng xuất khỏi tài khoản Quản trị">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng Xuất
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Metrics -->
+        <div class="admin-stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa-solid fa-key"></i></div>
+            <div class="stat-content">
+              <span class="stat-title">Tổng Số Key</span>
+              <h3 class="stat-number" id="admTotalKeys">--</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-laptop-code"></i></div>
+            <div class="stat-content">
+              <span class="stat-title">Đang Kích Hoạt Máy</span>
+              <h3 class="stat-number" id="admActiveKeys">--</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon cyan"><i class="fa-solid fa-crown"></i></div>
+            <div class="stat-content">
+              <span class="stat-title">Bản Quyền Vĩnh Viễn</span>
+              <h3 class="stat-number" id="admLifetimeKeys">--</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon amber"><i class="fa-solid fa-code-branch"></i></div>
+            <div class="stat-content">
+              <span class="stat-title">Phiên Bản OTA Hiện Tại</span>
+              <h3 class="stat-number" id="admCurrentVer">1.0.0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Distribution Analytics Bar -->
+        <div class="analytics-bar-card">
+          <div class="analytics-header">
+            <span><i class="fa-solid fa-chart-pie text-cyan"></i> Tỷ Lệ Kích Hoạt Thiết Bị</span>
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+              <span class="badge" id="dbProviderBadge" style="background:rgba(0,242,254,0.12); color:#00f2fe; border:1px solid rgba(0,242,254,0.3); font-size:0.75rem;"><i class="fa-solid fa-database"></i> Database: Local / Memory</span>
+              <span id="analyticsRatioText">0% đã gắn máy</span>
+            </div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-fill active-fill" id="progressActiveBar" style="width: 0%;"></div>
+            <div class="progress-fill unactivated-fill" id="progressUnboundBar" style="width: 100%;"></div>
+          </div>
+          <div class="analytics-legend">
+            <span><span class="legend-dot green"></span> Đã kích hoạt máy</span>
+            <span><span class="legend-dot cyan"></span> Chưa gắn máy (Sẵn sàng)</span>
+            <span><span class="legend-dot red"></span> Đã bị khóa</span>
+          </div>
+        </div>
+
+        <!-- Admin Tabs Navigation -->
+        <div class="admin-subtabs">
+          <button class="subtab-btn active" data-subtab="subtab-licenses">
+            <i class="fa-solid fa-list-check"></i> Danh Sách Bản Quyền
+          </button>
+          <button class="subtab-btn" data-subtab="subtab-version">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Cấu Hình Cập Nhật (OTA)
+          </button>
+          <a href="/docs" class="subtab-btn" style="text-decoration: none;">
+            <i class="fa-solid fa-book"></i> Xem Tài Liệu API &rarr;
+          </a>
+        </div>
+
+        <!-- SUBTAB 1: LICENSES LIST -->
+        <div class="subtab-pane active" id="subtab-licenses">
+          <div class="table-controls">
+            <div class="search-field">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="adminSearchInput" placeholder="Tìm theo mã key, tên khách hàng, HWID...">
+              <button class="btn-clear-search" id="btnClearSearch" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="filter-controls">
+              <select id="adminStatusFilter" class="custom-select" title="Lọc theo trạng thái bản quyền">
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="ACTIVE">Đang hoạt động (Đã gắn máy)</option>
+                <option value="UNBOUND">Chưa gắn máy (Chờ bàn giao)</option>
+                <option value="EXPIRED">Đã hết hạn (Expired)</option>
+                <option value="REVOKED">Đã bị khóa (Revoked)</option>
+              </select>
+              <select id="adminPlanFilter" class="custom-select" title="Lọc theo gói cước">
+                <option value="ALL">Tất cả gói cước</option>
+                <option value="PRO">💎 Pro Lifetime (Vĩnh viễn)</option>
+                <option value="1_YEAR">🌟 1 Năm (365 ngày)</option>
+                <option value="1_MONTH">⏱️ 1 Tháng (30 ngày)</option>
+                <option value="TRIAL">⏳ Dùng thử (Trial)</option>
+                <option value="ENTERPRISE">🏢 Doanh nghiệp</option>
+              </select>
+              <button class="btn btn-outline" id="btnExportCsv" title="Xuất danh sách ra file Excel / CSV (chuẩn tiếng Việt UTF-8 BOM)">
+                <i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Xuất Excel
+              </button>
+              <button class="btn btn-outline" id="btnOpenAuditLogs" title="Xem lịch sử và nhật ký xác thực toàn hệ thống">
+                <i class="fa-solid fa-clock-rotate-left" style="color: #38bdf8;"></i> Nhật Ký
+              </button>
+              <button class="btn btn-outline" id="btnReloadAdminLicenses">
+                <i class="fa-solid fa-rotate-right"></i> Làm Mới
+              </button>
+            </div>
+          </div>
+
+          <!-- Floating Bulk Action Bar (Hiển thị khi chọn nhiều checkbox) -->
+          <div class="bulk-action-bar" id="bulkActionBar" style="display: none;">
+            <div class="bulk-info">
+              <span class="bulk-count-badge" id="bulkSelectedCount">0</span>
+              <span>mục đã được chọn</span>
+            </div>
+            <div class="bulk-buttons">
+              <button class="btn btn-sm btn-outline" id="btnBulkResetHwid" title="Xóa HWID cho các key được chọn">
+                <i class="fa-solid fa-arrows-rotate"></i> Reset HWID
+              </button>
+              <button class="btn btn-sm btn-outline" id="btnBulkToggleRevoke" title="Khóa/Mở các key được chọn">
+                <i class="fa-solid fa-ban"></i> Đổi Trạng Thái
+              </button>
+              <button class="btn btn-sm btn-outline" id="btnBulkExtend" title="Gia hạn cho các key được chọn">
+                <i class="fa-solid fa-calendar-plus"></i> Gia Hạn
+              </button>
+              <button class="btn btn-sm btn-outline text-rose" id="btnBulkDelete" title="Xóa các key được chọn">
+                <i class="fa-solid fa-trash"></i> Xóa
+              </button>
+              <button class="btn btn-sm btn-glass" id="btnBulkDeselect">Bỏ Chọn</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="modern-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px;">
+                    <input type="checkbox" id="checkSelectAll" title="Chọn tất cả">
+                  </th>
+                  <th>MÃ BẢN QUYỀN</th>
+                  <th>KHÁCH HÀNG</th>
+                  <th>GÓI BẢN QUYỀN</th>
+                  <th>TRẠNG THÁI</th>
+                  <th>THIẾT BỊ GẮN (HWID)</th>
+                  <th>HẠN SỬ DỤNG</th>
+                  <th class="text-right">THAO TÁC</th>
+                </tr>
+              </thead>
+              <tbody id="adminTableBody">
+                <tr>
+                  <td colspan="8" class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Đang tải danh sách bản quyền...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUBTAB 2: VERSION CONFIG & LIVE PREVIEW -->
+        <div class="subtab-pane" id="subtab-version" style="display: none;">
+          <div class="version-split-layout">
+            <!-- Form Config -->
+            <div class="glass-form-card">
+              <div class="form-header">
+                <h3><i class="fa-solid fa-cloud-arrow-up text-cyan"></i> Quản Lý Cập Nhật Phần Mềm Tự Động (OTA)</h3>
+                <p>Mỗi khi client LTVStudio khởi động, ứng dụng sẽ gọi API để kiểm tra xem có bản cập nhật mới không.</p>
+              </div>
+              <div class="form-body">
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Phiên Bản Mới Nhất (Version)</label>
+                    <input type="text" id="admCfgVersion" placeholder="1.0.1">
+                  </div>
+                  <div class="form-group flex-2">
+                    <label>Đường Link Tải File Cài Đặt (.exe)</label>
+                    <input type="text" id="admCfgDownloadUrl" placeholder="https://domain.com/downloads/LTVStudio-Windows-Setup.exe">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Nội Dung Cập Nhật (Changelog / Release Notes)</label>
+                  <textarea id="admCfgChangelog" rows="6" placeholder="• Tính năng mới 1&#10;• Sửa lỗi 2&#10;• Cải thiện hiệu suất"></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="admCfgForceUpdate">
+                    <span class="checkmark"></span>
+                    <span>Bắt buộc cập nhật (Bắt buộc người dùng phải nâng cấp mới tiếp tục sử dụng được)</span>
+                  </label>
+                </div>
+                <div class="form-actions">
+                  <button class="btn btn-primary btn-lg" id="btnSaveVersionConfig">
+                    <i class="fa-solid fa-floppy-disk"></i> Xuất Bản &amp; Lưu Cập Nhật
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Desktop Dialog Preview -->
+            <div class="preview-desktop-box">
+              <div class="preview-header">
+                <i class="fa-solid fa-display"></i>
+                <span>Xem Trước Hộp Thoại Trên Client (Desktop Preview)</span>
+              </div>
+              <div class="client-dialog-mockup">
+                <div class="mockup-top">
+                  <div class="mockup-dots"><span></span><span></span><span></span></div>
+                  <span class="mockup-title">LTVStudio - Cập Nhật Phiên Bản</span>
+                </div>
+                <div class="mockup-body">
+                  <div class="mockup-icon-row">
+                    <div class="mockup-sparkle"><i class="fa-solid fa-sparkles"></i></div>
+                    <div>
+                      <h4 id="previewDialogTitle">Đã có bản cập nhật mới: v1.0.0</h4>
+                      <p class="mockup-sub">Bạn có muốn tải về và cài đặt ngay bây giờ?</p>
+                    </div>
+                  </div>
+                  <div class="mockup-changelog-box" id="previewChangelogBox">
+                    • Ra mắt phiên bản LTVStudio 1.0.0 Pro Edition
+                  </div>
+                  <div class="mockup-footer">
+                    <span class="mockup-btn cancel">Bỏ qua</span>
+                    <span class="mockup-btn update">Cập Nhật Ngay</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================
+       MODALS
+       ======================================================== -->
+  <!-- MODAL: CREATE LICENSE KEY -->
+  <div class="modal-overlay" id="createKeyModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-wand-magic-sparkles text-cyan"></i> Phát Hành Mã Bản Quyền Mới</h3>
+        <button class="modal-close" id="btnCloseCreateModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Loại Gói Bản Quyền</label>
+          <select id="modalKeyPlan" class="custom-select">
+            <option value="LIFETIME">💎 Vĩnh Viễn Pro (Lifetime - Không giới hạn)</option>
+            <option value="1_YEAR">🌟 Bản Quyền 1 Năm (365 ngày)</option>
+            <option value="1_MONTH">⏱️ Bản Quyền 1 Tháng (30 ngày)</option>
+            <option value="TRIAL">🎁 Dùng Thử Trải Nghiệm (7 ngày)</option>
+            <option value="CUSTOM">⚙️ Tùy chỉnh số ngày...</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="modalCustomDaysGroup" style="display: none;">
+          <label>Số Ngày Hiệu Lực (Ngày)</label>
+          <input type="number" id="modalCustomDays" min="1" max="3650" placeholder="VD: 90">
+        </div>
+
+        <div class="form-group">
+          <label>Tên Khách Hàng / Đơn Vị Sử Dụng</label>
+          <input type="text" id="modalCustomerName" placeholder="VD: Nguyễn Văn A (Zalo: 098xxx)">
+        </div>
+
+        <div class="form-group">
+          <label>Số Lượng Key Cần Tạo</label>
+          <div class="batch-count-wrapper">
+            <input type="number" id="modalKeyCount" min="1" max="50" value="1">
+            <span class="hint-text">Tạo từ 1 đến 50 key cùng một lúc</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Ghi Chú Nội Bộ</label>
+          <textarea id="modalKeyNotes" rows="2" placeholder="Ghi chú đơn hàng, mã giao dịch ngân hàng..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" id="btnCancelCreateKey">Hủy</button>
+          <button class="btn btn-primary" id="btnSubmitCreateKey">
+            <i class="fa-solid fa-bolt"></i> Tạo Mã Bản Quyền
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BATCH RESULT -->
+  <div class="modal-overlay" id="batchResultModal">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-circle-check text-emerald"></i> Đã Tạo Thành Công <span id="batchCreatedCount">0</span> Key</h3>
+        <button class="modal-close" id="btnCloseBatchModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Sao chép danh sách key bên dưới để bàn giao cho khách hàng hoặc lưu trữ:</p>
+        <div class="code-preview-wrapper batch-key-container">
+          <textarea id="batchKeysTextArea" readonly rows="8"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" id="btnCopyAllBatchKeys">
+            <i class="fa-solid fa-copy"></i> Sao Chép Tất Cả
+          </button>
+          <button class="btn btn-primary" id="btnFinishBatchModal">Hoàn Tất</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXTEND LICENSE -->
+  <div class="modal-overlay" id="extendModal">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-calendar-plus text-cyan"></i> Gia Hạn &amp; Đổi Gói Bản Quyền</h3>
+        <button class="modal-close" id="btnCloseExtendModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="extend-target-info" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.9rem; margin-bottom: 1.2rem;">
+          <div style="font-size: 0.85rem; color: var(--text-muted);">Mã bản quyền:</div>
+          <div id="extendTargetKey" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #00f2fe; font-size: 1.05rem;">--</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.4rem;">Khách hàng: <strong id="extendTargetCustomer" style="color: #f1f5f9;">--</strong></div>
+        </div>
+
+        <div class="form-group">
+          <label>Hành Động</label>
+          <select id="extendActionType" class="custom-select">
+            <option value="ADD_DAYS">➕ Cộng thêm số ngày sử dụng</option>
+            <option value="SET_LIFETIME">💎 Nâng cấp thành Vĩnh Viễn (Lifetime)</option>
+            <option value="CHANGE_PLAN">⭐ Đổi gói cước mới</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="extendDaysGroup">
+          <label>Số Ngày Cần Thêm (Ngày)</label>
+          <input type="number" id="extendDaysInput" min="1" max="3650" value="30" placeholder="VD: 30">
+        </div>
+
+        <div class="form-group" id="extendNewPlanGroup" style="display: none;">
+          <label>Gói Cước Mới</label>
+          <select id="extendNewPlanSelect" class="custom-select">
+            <option value="PRO">💎 Pro Edition</option>
+            <option value="1_YEAR">🌟 1 Năm</option>
+            <option value="1_MONTH">⏱️ 1 Tháng</option>
+            <option value="ENTERPRISE">🏢 Doanh Nghiệp</option>
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" id="btnCancelExtendModal">Hủy</button>
+          <button class="btn btn-primary" id="btnSubmitExtendModal">
+            <i class="fa-solid fa-check"></i> Xác Nhận Cập Nhật
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRM ACTION -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 id="confirmModalTitle"><i class="fa-solid fa-triangle-exclamation text-rose"></i> Xác Nhận Thao Tác</h3>
+        <button class="modal-close" id="btnCloseConfirmModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage" style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 1.5rem;">
+          Bạn có chắc chắn muốn thực hiện thao tác này?
+        </p>
+        <div class="modal-footer">
+          <button class="btn btn-outline" id="btnCancelConfirmModal">Hủy Bỏ</button>
+          <button class="btn btn-danger" id="btnExecuteConfirmModal">
+            <i class="fa-solid fa-check"></i> Đồng Ý
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HANDOVER SLIP -->
+  <div class="modal-overlay" id="handoverModal">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-paper-plane text-cyan"></i> Mẫu Thông Tin Bàn Giao Bản Quyền</h3>
+        <button class="modal-close" id="btnCloseHandoverModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Đã tạo sẵn mẫu tin nhắn định dạng chuẩn để bạn gửi trực tiếp qua Zalo, Messenger, Email cho khách hàng:</p>
+        <div class="code-preview-wrapper">
+          <textarea id="handoverTextarea" readonly rows="12" style="font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; width: 100%; border-radius: 8px; padding: 1rem;"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="btnCopyHandoverSlip">
+            <i class="fa-solid fa-copy"></i> Sao Chép Toàn Bộ Tin Nhắn
+          </button>
+          <button class="btn btn-outline" id="btnFinishHandoverModal">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AUDIT LOGS -->
+  <div class="modal-overlay" id="auditLogsModal">
+    <div class="modal-box modal-lg" style="max-width: 900px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-shield-halved text-cyan"></i> Nhật Ký Kích Hoạt &amp; Bảo Mật Toàn Hệ Thống</h3>
+        <button class="modal-close" id="btnCloseAuditLogsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>THỜI GIAN</th>
+                <th>MÃ KEY</th>
+                <th>KẾT QUẢ</th>
+                <th>MÃ MÁY (HWID)</th>
+                <th>IP CLIENT</th>
+                <th>GHI CHÚ / LÝ DO</th>
+              </tr>
+            </thead>
+            <tbody id="auditLogsTableBody">
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Đang tải nhật ký...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+          <span class="text-muted" style="font-size: 0.85rem;" id="auditLogsTotalCount">Tổng cộng: 0 sự kiện</span>
+          <button class="btn btn-outline" id="btnRefreshAuditLogs">
+            <i class="fa-solid fa-rotate-right"></i> Làm Mới
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HEALTH CHECK -->
+  <div class="modal-overlay" id="healthCheckModal">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-heart-pulse text-cyan"></i> Trạng Thái Sức Khỏe Máy Chủ</h3>
+        <button class="modal-close" id="btnCloseHealthCheck">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="healthLoading" class="text-center py-4 text-muted">
+          <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+          <p style="margin-top: 0.8rem;">Đang kiểm tra kết nối API & CSDL...</p>
+        </div>
+        <div id="healthContent" style="display: none;">
+          <div class="health-status-banner" id="healthStatusBanner" style="padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; font-weight: 700;">
+            HỆ THỐNG HOẠT ĐỘNG HOÀN TOÀN BÌNH THƯỜNG
+          </div>
+          <div class="result-details-grid" style="grid-template-columns: 1fr;">
+            <div class="result-item"><span class="label">Trạng thái:</span> <strong id="healthStatusText">200 OK</strong></div>
+            <div class="result-item"><span class="label">Phiên bản API:</span> <strong id="healthApiVersion">v1.0.0</strong></div>
+            <div class="result-item"><span class="label">Cơ sở dữ liệu:</span> <strong id="healthDbProvider">Memory / Local JSON</strong></div>
+            <div class="result-item"><span class="label">Bộ nhớ sử dụng (RSS):</span> <strong id="healthMemoryRss">-- MB</strong></div>
+            <div class="result-item"><span class="label">Thời gian hoạt động (Uptime):</span> <strong id="healthUptime">--</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="admin.js"></script>
+</body>
+</html>

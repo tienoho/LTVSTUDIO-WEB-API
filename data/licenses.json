@@ -9,7 +9,7 @@
     "status": "ACTIVE",
     "createdAt": "2026-10-14T00:00:00Z",
     "expiresAt": "LIFETIME",
-    "lastVerifiedAt": "2026-10-15T06:56:57.254Z",
+    "lastVerifiedAt": "2026-10-15T08:23:24.638Z",
     "activatedAt": "2026-10-14T06:27:33.505Z"
   },
   {
@@ -674,5 +674,129 @@
     "expiresAt": "LIFETIME",
     "lastVerifiedAt": "2026-10-15T06:56:59.603Z",
     "activatedAt": "2026-10-15T06:56:59.603Z"
+  },
+  {
+    "key": "LTV-PRO-AEDC62-646266-23026B",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:07:33.511Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T08:07:33.548Z",
+    "activatedAt": "2026-10-15T08:07:33.517Z"
+  },
+  {
+    "key": "LTV-TRIL-A7F9C1-0855F1-E37E69",
+    "type": "LTVStudio Dùng Thử 7 Ngày",
+    "plan": "TRIAL",
+    "customer": "<script>alert(\"HACKED\")</script>",
+    "notes": "<img src=x onerror=1>",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:07:35.884Z",
+    "expiresAt": "2026-10-22T08:07:35.883Z",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-1Y-EF2884-BFD9C8-F5A790",
+    "type": "LTVStudio Bản Quyền 1 Năm",
+    "plan": "1_YEAR",
+    "customer": "Khách Vercel Test",
+    "notes": "Test Suite",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:07:38.190Z",
+    "expiresAt": "2027-10-15T08:07:38.189Z",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-1Y-824380-923798-EA93AB",
+    "type": "LTVStudio Bản Quyền 1 Năm",
+    "plan": "1_YEAR",
+    "customer": "Khách Vercel Test",
+    "notes": "Test Suite",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:07:38.190Z",
+    "expiresAt": "2027-10-15T08:07:38.189Z",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-PRO-9BBA8D-4EF9B5-2CE2FF",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Khách Hàng Test Audit",
+    "notes": "",
+    "machineId": "HWID-PC-OFFICE-01",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:07:40.522Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T08:07:40.527Z",
+    "activatedAt": "2026-10-15T08:07:40.527Z"
+  },
+  {
+    "key": "LTV-1Y-BD47D4-D1E517-CCAF3F",
+    "type": "LTVStudio Bản Quyền 1 Năm",
+    "plan": "1_YEAR",
+    "customer": "Khách Vercel Test",
+    "notes": "Test Suite",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:23:24.649Z",
+    "expiresAt": "2027-10-15T08:23:24.649Z",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-1Y-31C339-5BEA53-FD7486",
+    "type": "LTVStudio Bản Quyền 1 Năm",
+    "plan": "1_YEAR",
+    "customer": "Khách Vercel Test",
+    "notes": "Test Suite",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:23:24.649Z",
+    "expiresAt": "2027-10-15T08:23:24.649Z",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-PRO-2D6C31-D89DB2-0FA2F3",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Khách Hàng Test Audit",
+    "notes": "",
+    "machineId": "HWID-PC-OFFICE-01",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:26:39.325Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T08:26:39.330Z",
+    "activatedAt": "2026-10-15T08:26:39.330Z"
+  },
+  {
+    "key": "LTV-PRO-2FC3C5-363B69-27685D",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:26:46.760Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T08:26:46.795Z",
+    "activatedAt": "2026-10-15T08:26:46.766Z"
+  },
+  {
+    "key": "LTV-TRIL-726CD4-9D1877-EA80DB",
+    "type": "LTVStudio Dùng Thử 7 Ngày",
+    "plan": "TRIAL",
+    "customer": "<script>alert(\"HACKED\")</script>",
+    "notes": "<img src=x onerror=1>",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T08:26:53.958Z",
+    "expiresAt": "2026-10-22T08:26:53.958Z",
+    "lastVerifiedAt": null
   }
 ]

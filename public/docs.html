@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài Liệu Tích Hợp API - LTVStudio Cloud Portal</title>
+  <meta name="description" content="Tài liệu kỹ thuật và API tích hợp dành cho lập trình viên. Hỗ trợ xác thực bản quyền phần cứng (HWID), chữ ký số HMAC-SHA256, kiểm tra cập nhật OTA.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .docs-container-layout {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 5rem;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .docs-container-layout {
+        grid-template-columns: 1fr;
+      }
+      .docs-sidebar {
+        display: none;
+      }
+    }
+    .docs-sidebar {
+      position: sticky;
+      top: 90px;
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 1.25rem;
+    }
+    .docs-sidebar h4 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+    .docs-nav-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .docs-nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: var(--radius-sm);
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.88rem;
+      transition: all 0.2s ease;
+    }
+    .docs-nav-link:hover, .docs-nav-link.active {
+      background: rgba(0, 242, 254, 0.12);
+      color: #00f2fe;
+    }
+    .docs-content {
+      min-width: 0;
+    }
+    .docs-section-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.2rem;
+      margin-bottom: 2rem;
+    }
+    .docs-section-card h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .docs-section-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+    }
+    .endpoint-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.45rem 0.9rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      margin-bottom: 1.25rem;
+    }
+    .endpoint-pill .method-badge {
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+    }
+    .method-get { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .method-post { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .method-put { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .method-delete { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+    .lang-tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .lang-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lang-tab:hover {
+      color: #fff;
+    }
+    .lang-tab.active {
+      background: rgba(0, 242, 254, 0.15);
+      color: #00f2fe;
+    }
+    .status-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    .status-table th, .status-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.88rem;
+    }
+    .status-table th {
+      color: #94a3b8;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient Fluid Orbs -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Main Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand" id="brandLogo" style="text-decoration: none;">
+        <div class="logo-box">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">LTVStudio</span>
+          <span class="brand-tag">Cloud Portal</span>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <a href="/" class="nav-link">
+          <i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về
+        </a>
+        <a href="/lookup" class="nav-link">
+          <i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền
+        </a>
+        <a href="/docs" class="nav-link active">
+          <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
+        </a>
+        <a href="/admin" class="nav-link admin-nav-btn">
+          <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
+        </a>
+      </nav>
+
+      <div class="nav-actions">
+        <div class="health-pill" id="navHealthPill" title="Bấm để xem trạng thái máy chủ & CSDL">
+          <span class="status-indicator-dot"></span>
+          <span id="healthPillText">API Online</span>
+        </div>
+        <a href="/#download" class="btn btn-sm btn-glow" id="navDownloadBtn">
+          <i class="fa-solid fa-download"></i> Tải Cho Windows
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-body">
+    <div class="docs-container-layout">
+      <!-- Sticky Sidebar -->
+      <aside class="docs-sidebar">
+        <h4>Mục Lục Tài Liệu</h4>
+        <ul class="docs-nav-list">
+          <li><a href="#overview" class="docs-nav-link active"><i class="fa-solid fa-circle-nodes"></i> Tổng Quan & Base URL</a></li>
+          <li><a href="#security" class="docs-nav-link"><i class="fa-solid fa-shield-halved"></i> Bảo Mật HMAC & Anti-Replay</a></li>
+          <li><a href="#version-api" class="docs-nav-link"><i class="fa-solid fa-cloud-arrow-down"></i> 1. Kiểm Tra Phiên Bản</a></li>
+          <li><a href="#verify-api" class="docs-nav-link"><i class="fa-solid fa-key"></i> 2. Xác Thực HWID</a></li>
+          <li><a href="#lookup-api" class="docs-nav-link"><i class="fa-solid fa-magnifying-glass"></i> 3. Tra Cứu Công Khai</a></li>
+          <li><a href="#admin-api" class="docs-nav-link"><i class="fa-solid fa-user-lock"></i> 4. Quản Trị Hệ Thống</a></li>
+          <li><a href="#error-codes" class="docs-nav-link"><i class="fa-solid fa-circle-exclamation"></i> 5. Bảng Mã Lỗi</a></li>
+        </ul>
+      </aside>
+
+      <!-- Main Docs Content -->
+      <div class="docs-content">
+        <!-- 1. OVERVIEW -->
+        <section class="docs-section-card" id="overview">
+          <h2><i class="fa-solid fa-network-wired text-cyan"></i> Tổng Quan Kiến Trúc API</h2>
+          <p>
+            Hệ thống <strong>LTVStudio Cloud Web API</strong> cung cấp các dịch vụ đám mây thời gian thực cho ứng dụng máy tính <em>PodStudio Transform</em>, các công cụ biên dịch video và cổng quản trị bản quyền. Toàn bộ API được thiết kế theo chuẩn RESTful, trả về định dạng JSON UTF-8 với thời gian phản hồi dưới 50ms.
+          </p>
+          
+          <h4 style="color: #f1f5f9; margin-bottom: 0.6rem; font-size: 0.95rem;">Máy Chủ Production &amp; Development:</h4>
+          <div class="endpoint-pill" style="width: 100%; justify-content: space-between;">
+            <div>
+              <span class="method-badge method-get">PRODUCTION</span>
+              <span style="color: #38bdf8;">https://ltvstudio-web-api.vercel.app</span>
+            </div>
+            <button class="btn-copy-code" data-copy="https://ltvstudio-web-api.vercel.app" title="Sao chép URL"><i class="fa-regular fa-copy"></i></button>
+          </div>
+          <div class="endpoint-pill" style="width: 100%; justify-content: space-between;">
+            <div>
+              <span class="method-badge method-post">LOCAL VPS</span>
+              <span style="color: #a78bfa;">http://localhost:8080</span>
+            </div>
+            <button class="btn-copy-code" data-copy="http://localhost:8080" title="Sao chép URL"><i class="fa-regular fa-copy"></i></button>
+          </div>
+        </section>
+
+        <!-- 2. SECURITY & HMAC -->
+        <section class="docs-section-card" id="security">
+          <h2><i class="fa-solid fa-shield-halved text-cyan"></i> Chuẩn Bảo Mật HMAC-SHA256 &amp; Anti-Replay</h2>
+          <p>
+            Mọi yêu cầu xác thực bản quyền từ máy tính khách hàng được bảo vệ nghiêm ngặt bằng cơ chế <strong>Hardware ID Binding</strong> và chữ ký điện tử HMAC-SHA256 để ngăn chặn giả mạo gói tin (Man-In-The-Middle) và tấn công phát lại (Replay Attacks).
+          </p>
+
+          <div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+            <h4 style="color: #00f2fe; margin-bottom: 0.4rem; font-size: 0.95rem;"><i class="fa-solid fa-clock-rotate-left"></i> Yêu Cầu Của Gói Tin Xác Thực:</h4>
+            <ul style="color: var(--text-muted); font-size: 0.88rem; padding-left: 1.2rem; line-height: 1.6;">
+              <li><strong>timestamp</strong>: Unix timestamp hiện tại (mili-giây). Hệ thống từ chối gói tin nếu sai lệch quá 5 phút.</li>
+              <li><strong>nonce</strong>: Chuỗi ngẫu nhiên 16–32 ký tự, dùng 1 lần duy nhất để chống phát lại.</li>
+              <li><strong>signature</strong>: Chữ ký HMAC-SHA256 tính từ chuỗi <code style="color: #38bdf8;">${licenseKey}:${machineId}:${timestamp}:${nonce}</code>.</li>
+              <li><strong>validateHwid</strong>: Chuỗi HWID máy tính hợp lệ (tối thiểu 6 ký tự, không chấp nhận chuỗi rỗng hoặc UNKNOWN).</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 3. VERSION API -->
+        <section class="docs-section-card" id="version-api">
+          <h2><i class="fa-solid fa-cloud-arrow-down text-cyan"></i> 1. Kiểm Tra Cập Nhật Phiên Bản (OTA)</h2>
+          <p>Client desktop gọi endpoint này khi khởi động hoặc khi người dùng nhấp "Kiểm tra cập nhật".</p>
+          
+          <div class="endpoint-pill">
+            <span class="method-badge method-get">GET</span>
+            <span>/api/transform/version</span>
+          </div>
+
+          <div class="code-preview-wrapper" style="margin-bottom: 1.25rem;">
+            <pre><code>curl -s https://ltvstudio-web-api.vercel.app/api/transform/version</code></pre>
+            <button class="btn-copy-code" data-copy="curl -s https://ltvstudio-web-api.vercel.app/api/transform/version" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+          </div>
+
+          <h4 style="color: #f1f5f9; font-size: 0.9rem; margin-bottom: 0.5rem;">Ví Dụ Phản Hồi Thành Công (HTTP 200):</h4>
+          <div class="code-preview-wrapper">
+            <pre><code>{
+  "version": "1.0.0",
+  "releaseDate": "2026-10-15",
+  "forceUpdate": false,
+  "downloadUrl": "https://ltvstudio-web-api.vercel.app/downloads/PodStudioTransform-Setup.exe",
+  "changelog": "• Ra mắt phiên bản thương mại chính thức\n• Nâng cấp AI Voice Engine\n• Tích hợp bản quyền HWID đám mây",
+  "minSupportedVersion": "1.0.0"
+}</code></pre>
+          </div>
+        </section>
+
+        <!-- 4. VERIFY API -->
+        <section class="docs-section-card" id="verify-api">
+          <h2><i class="fa-solid fa-key text-cyan"></i> 2. Xác Thực Bản Quyền &amp; Khóa Thiết Bị (HWID)</h2>
+          <p>
+            Client máy tính gửi mã bản quyền và mã nhận diện phần cứng (Machine ID / HWID) để mở khóa tính năng.
+            Lần đầu tiên xác thực, hệ thống sẽ tự động gán vĩnh viễn với thiết bị đó.
+          </p>
+
+          <div class="endpoint-pill">
+            <span class="method-badge method-post">POST</span>
+            <span>/api/auth/verify</span>
+          </div>
+
+          <div class="code-preview-wrapper" style="margin-bottom: 1.25rem;">
+            <pre><code>curl -X POST https://ltvstudio-web-api.vercel.app/api/auth/verify   -H "Content-Type: application/json"   -d '{
+    "licenseKey": "LTV-PRO-8888-9999-LIFETIME",
+    "machineId": "WIN-UUID-4A7F-9B21-5089"
+  }'</code></pre>
+            <button class="btn-copy-code" data-copy="curl -X POST https://ltvstudio-web-api.vercel.app/api/auth/verify -H &quot;Content-Type: application/json&quot; -d '{&quot;licenseKey&quot;: &quot;LTV-PRO-8888-9999-LIFETIME&quot;, &quot;machineId&quot;: &quot;WIN-UUID-4A7F-9B21-5089&quot;}'" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+          </div>
+
+          <h4 style="color: #f1f5f9; font-size: 0.9rem; margin-bottom: 0.5rem;">Ví Dụ Phản Hồi Thành Công (HTTP 200):</h4>
+          <div class="code-preview-wrapper">
+            <pre><code>{
+  "isValid": true,
+  "licenseKey": "LTV-PRO-8888-9999-LIFETIME",
+  "plan": "LIFETIME",
+  "status": "ACTIVE",
+  "isBound": true,
+  "expiresAt": null,
+  "features": ["FULL_STUDIO_ACCESS", "OFFLINE_DUBBING", "AUTO_UPDATES"],
+  "token": "hmac_signature_token_here",
+  "timestamp": 1792051200000,
+  "message": "Xác thực bản quyền thành công! Chào mừng bạn đến với PodStudio Transform Pro."
+}</code></pre>
+          </div>
+        </section>
+
+        <!-- 5. LOOKUP API -->
+        <section class="docs-section-card" id="lookup-api">
+          <h2><i class="fa-solid fa-magnifying-glass text-cyan"></i> 3. Cổng Tra Cứu Công Khai (Public Lookup)</h2>
+          <p>
+            Cho phép khách hàng hoặc đại lý kiểm tra trạng thái của mã bản quyền mà không làm lộ các thông tin nhạy cảm.
+            Mã thiết bị phần cứng sẽ được tự động che (ví dụ: <code style="color: #38bdf8;">WIN-****-001</code>).
+          </p>
+
+          <div class="endpoint-pill">
+            <span class="method-badge method-get">GET</span>
+            <span>/api/license/lookup?key=...</span>
+          </div>
+
+          <div class="code-preview-wrapper" style="margin-bottom: 1.25rem;">
+            <pre><code>curl -s "https://ltvstudio-web-api.vercel.app/api/license/lookup?key=LTV-PRO-8888-9999-LIFETIME"</code></pre>
+            <button class="btn-copy-code" data-copy="curl -s &quot;https://ltvstudio-web-api.vercel.app/api/license/lookup?key=LTV-PRO-8888-9999-LIFETIME&quot;" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+          </div>
+
+          <h4 style="color: #f1f5f9; font-size: 0.9rem; margin-bottom: 0.5rem;">Ví Dụ Phản Hồi (HTTP 200):</h4>
+          <div class="code-preview-wrapper">
+            <pre><code>{
+  "exists": true,
+  "key": "LTV-PRO-8888-9999-LIFETIME",
+  "plan": "LIFETIME",
+  "status": "ACTIVE",
+  "isBound": true,
+  "maskedMachineId": "WIN-****-001",
+  "customer": "Khách hàng VIP",
+  "daysLeft": "Vĩnh viễn",
+  "expiresAt": "Không giới hạn (Lifetime)"
+}</code></pre>
+          </div>
+        </section>
+
+        <!-- 6. ADMIN API -->
+        <section class="docs-section-card" id="admin-api">
+          <h2><i class="fa-solid fa-user-lock text-cyan"></i> 4. API Quản Trị Hệ Thống (Admin APIs)</h2>
+          <p>
+            Dành riêng cho bảng điều khiển quản trị viên. Toàn bộ yêu cầu quản trị bắt buộc phải truyền header xác thực
+            <code style="color: #00f2fe;">Authorization: Bearer &lt;admin_session_token&gt;</code> hoặc <code style="color: #00f2fe;">x-admin-key: &lt;secret&gt;</code>.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 1rem;">
+            <div class="endpoint-pill" style="justify-content: space-between;">
+              <div><span class="method-badge method-post">POST</span> <span>/api/admin/login</span></div>
+              <span style="color: var(--text-muted); font-size: 0.82rem;">Đăng nhập lấy session token (24h)</span>
+            </div>
+            <div class="endpoint-pill" style="justify-content: space-between;">
+              <div><span class="method-badge method-get">GET</span> <span>/api/admin/stats</span></div>
+              <span style="color: var(--text-muted); font-size: 0.82rem;">Xem chỉ số thống kê KPI</span>
+            </div>
+            <div class="endpoint-pill" style="justify-content: space-between;">
+              <div><span class="method-badge method-get">GET</span> <span>/api/admin/licenses</span></div>
+              <span style="color: var(--text-muted); font-size: 0.82rem;">Lấy toàn bộ danh sách key</span>
+            </div>
+            <div class="endpoint-pill" style="justify-content: space-between;">
+              <div><span class="method-badge method-post">POST</span> <span>/api/admin/licenses/create</span></div>
+              <span style="color: var(--text-muted); font-size: 0.82rem;">Phát hành key đơn hoặc hàng loạt</span>
+            </div>
+            <div class="endpoint-pill" style="justify-content: space-between;">
+              <div><span class="method-badge method-put">PUT</span> <span>/api/admin/licenses/:key</span></div>
+              <span style="color: var(--text-muted); font-size: 0.82rem;">Cập nhật, gia hạn, reset HWID</span>
+            </div>
+            <div class="endpoint-pill" style="justify-content: space-between;">
+              <div><span class="method-badge method-delete">DELETE</span> <span>/api/admin/licenses/:key</span></div>
+              <span style="color: var(--text-muted); font-size: 0.82rem;">Xóa key khỏi cơ sở dữ liệu</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. ERROR CODES -->
+        <section class="docs-section-card" id="error-codes">
+          <h2><i class="fa-solid fa-circle-exclamation text-cyan"></i> 5. Bảng Tiêu Chuẩn Mã Lỗi HTTP</h2>
+          <table class="status-table">
+            <thead>
+              <tr>
+                <th>Mã HTTP</th>
+                <th>Tên Mã</th>
+                <th>Ý Nghĩa / Nguyên Nhân</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong style="color: #10b981;">200 OK</strong></td>
+                <td>Success</td>
+                <td>Yêu cầu đã được xử lý thành công, trả về dữ liệu tương ứng.</td>
+              </tr>
+              <tr>
+                <td><strong style="color: #f59e0b;">400 Bad Request</strong></td>
+                <td>Invalid Payload</td>
+                <td>Thiếu tham số bắt buộc hoặc định dạng license key / HWID không hợp lệ.</td>
+              </tr>
+              <tr>
+                <td><strong style="color: #ef4444;">401 Unauthorized</strong></td>
+                <td>Invalid Auth</td>
+                <td>Chữ ký HMAC không khớp hoặc thiếu token phiên đăng nhập quản trị.</td>
+              </tr>
+              <tr>
+                <td><strong style="color: #ef4444;">403 Forbidden</strong></td>
+                <td>Device Mismatch / Locked</td>
+                <td>Bản quyền đã bị khóa hoặc cố gắng kích hoạt trên thiết bị khác với máy đã đăng ký.</td>
+              </tr>
+              <tr>
+                <td><strong style="color: #a855f7;">429 Too Many Requests</strong></td>
+                <td>Rate Limited</td>
+                <td>Hệ thống phát hiện brute-force và tạm thời khóa IP trong 10 phút.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- Health Check Modal -->
+  <div class="modal-overlay" id="healthCheckModal">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-heart-pulse text-cyan"></i> Trạng Thái Sức Khỏe Máy Chủ</h3>
+        <button class="modal-close" id="btnCloseHealthCheck">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="healthLoading" class="text-center py-4 text-muted">
+          <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+          <p style="margin-top: 0.8rem;">Đang kiểm tra kết nối API & CSDL...</p>
+        </div>
+        <div id="healthContent" style="display: none;">
+          <div class="health-status-banner" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; font-weight: 700;">
+            HỆ THỐNG HOẠT ĐỘNG HOÀN TOÀN BÌNH THƯỜNG
+          </div>
+          <div class="result-details-grid" style="grid-template-columns: 1fr;">
+            <div class="result-item"><span class="label">Trạng thái:</span> <strong>200 OK</strong></div>
+            <div class="result-item"><span class="label">Phiên bản API:</span> <strong>v1.0.0</strong></div>
+            <div class="result-item"><span class="label">Cơ sở dữ liệu:</span> <strong>Memory / Local JSON</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="docs.js"></script>
+</body>
+</html>

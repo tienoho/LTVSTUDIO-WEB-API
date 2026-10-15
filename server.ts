@@ -83,9 +83,19 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
       res.writeHead(200, { 'Content-Type': contentType });
       fs.createReadStream(filePath).pipe(res);
     } else {
-      // SPA Fallback: ONLY fallback to index.html if request has NO file extension
+      // Clean URLs support: e.g. /lookup -> lookup.html, /admin -> admin.html, /docs -> docs.html
       const ext = path.extname(pathname);
       if (!ext) {
+        const directHtmlPath = path.resolve(PUBLIC_DIR, '.' + path.sep + normalizedReqPath + '.html');
+        if (directHtmlPath.startsWith(path.resolve(PUBLIC_DIR)) && fs.existsSync(directHtmlPath)) {
+          const directStats = fs.statSync(directHtmlPath);
+          if (directStats.isFile()) {
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            fs.createReadStream(directHtmlPath).pipe(res);
+            return;
+          }
+        }
+
         const indexPath = path.join(PUBLIC_DIR, 'index.html');
         if (fs.existsSync(indexPath)) {
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -103,10 +113,12 @@ server.listen(PORT, () => {
   console.log('======================================================================');
   console.log(`  🚀 LTVSTUDIO WEB API & LICENSE SERVER (TYPESCRIPT) ON PORT ${PORT} `);
   console.log('======================================================================');
-  console.log(`  • Web Portal & Admin Center: http://localhost:${PORT}/`);
+  console.log(`  • Home & Download Portal:    http://localhost:${PORT}/`);
+  console.log(`  • License Key Lookup:        http://localhost:${PORT}/lookup`);
+  console.log(`  • Admin Management Center:   http://localhost:${PORT}/admin`);
+  console.log(`  • Developer API Docs:        http://localhost:${PORT}/docs`);
   console.log(`  • Health Check API:          http://localhost:${PORT}/api/health`);
   console.log(`  • Version API:               http://localhost:${PORT}/api/transform/version`);
   console.log(`  • Verify HWID API:           http://localhost:${PORT}/api/auth/verify`);
-  console.log(`  • Public License Lookup:     http://localhost:${PORT}/api/license/lookup?key=...`);
   console.log('======================================================================');
 });
