@@ -17,13 +17,18 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
+if not exist "node_modules\" (
+    echo [*] Phat hien thu vien chua duoc cai dat. Dang thuc hien npm install...
+    call npm install
+)
+
 if not exist "dist\index.html" (
     echo [*] Phat hien giao dien React SPA chua duoc build. Dang thuc hien build bundle vao dist/...
     call npm run build:ui
 )
 
 echo [*] Dang khoi dong Web API & React SPA Server (TypeScript) tren cong 8080...
-start "" http://localhost:8080/
+start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:8080/"
 
 if exist "node_modules\tsx\dist\cli.mjs" (
     node node_modules\tsx\dist\cli.mjs server.ts

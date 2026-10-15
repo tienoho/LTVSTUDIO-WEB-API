@@ -8,7 +8,8 @@
     "dev:ui": "vite",
     "build:ui": "vite build --outDir dist",
     "build": "vite build --outDir dist && tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && npm run build"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

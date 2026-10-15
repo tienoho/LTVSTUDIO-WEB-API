@@ -143,16 +143,20 @@ process.on('SIGTERM', () => {
   console.log('[Process Signal] Received SIGTERM');
 });
 
-server.listen(PORT, () => {
-  console.log('======================================================================');
-  console.log(`  🚀 LTVSTUDIO WEB API & LICENSE SERVER (TYPESCRIPT) ON PORT ${PORT} `);
-  console.log('======================================================================');
-  console.log(`  • Home & Download Portal:    http://localhost:${PORT}/`);
-  console.log(`  • License Key Lookup:        http://localhost:${PORT}/lookup`);
-  console.log(`  • Admin Management Center:   http://localhost:${PORT}/admin`);
-  console.log(`  • Developer API Docs:        http://localhost:${PORT}/docs`);
-  console.log(`  • Health Check API:          http://localhost:${PORT}/api/health`);
-  console.log(`  • Version API:               http://localhost:${PORT}/api/transform/version`);
-  console.log(`  • Verify HWID API:           http://localhost:${PORT}/api/auth/verify`);
-  console.log('======================================================================');
-});
+if (!process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log('======================================================================');
+    console.log(`  🚀 LTVSTUDIO WEB API & LICENSE SERVER (TYPESCRIPT) ON PORT ${PORT} `);
+    console.log('======================================================================');
+    console.log(`  • Home & Download Portal:    http://localhost:${PORT}/`);
+    console.log(`  • License Key Lookup:        http://localhost:${PORT}/lookup`);
+    console.log(`  • Admin Management Center:   http://localhost:${PORT}/admin`);
+    console.log(`  • Developer API Docs:        http://localhost:${PORT}/docs`);
+    console.log(`  • Health Check API:          http://localhost:${PORT}/api/health`);
+    console.log(`  • Version API:               http://localhost:${PORT}/api/transform/version`);
+    console.log(`  • Verify HWID API:           http://localhost:${PORT}/api/auth/verify`);
+    console.log('======================================================================');
+  });
+}
+
+export default server;

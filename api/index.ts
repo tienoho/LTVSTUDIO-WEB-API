@@ -16,7 +16,7 @@ export {
   ROLE_PERMISSIONS,
   isSecretValid,
   validateRoleCredentials,
-  AdminSessionData,
+  type AdminSessionData,
   createAdminSessionToken,
   parseAdminSessionToken,
   verifyAdminSessionToken
