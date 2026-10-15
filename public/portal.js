@@ -152,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.valid) {
         if (navDocsLink) navDocsLink.style.display = 'inline-flex';
+        document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'inline');
         if (navAdminProfilePill) {
           navAdminProfilePill.style.display = 'inline-flex';
           if (navAdminName) navAdminName.textContent = data.username || 'Admin';

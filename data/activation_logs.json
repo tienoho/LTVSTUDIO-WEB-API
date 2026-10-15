@@ -1,5 +1,25 @@
 [
   {
+    "id": 1792061422470,
+    "licenseKey": "LTV-1Y-F88E4B-A5F406-C6B3E9",
+    "machineId": "WIN-FRAUD-PC-99",
+    "ipAddress": "::1",
+    "status": "WRONG_HWID",
+    "message": "Thiết bị không khớp (Đang gắn: WIN-UUID-MASTER-PC-01)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T10:50:22.223Z"
+  },
+  {
+    "id": 1792061423150,
+    "licenseKey": "LTV-1Y-F88E4B-A5F406-C6B3E9",
+    "machineId": "WIN-UUID-MASTER-PC-01",
+    "ipAddress": "::1",
+    "status": "SUCCESS",
+    "message": "Xác thực bản quyền thành công (Signed Token)",
+    "userAgent": "Python-urllib/3.13",
+    "createdAt": "2026-10-15T10:50:22.219Z"
+  },
+  {
     "id": 1792057424196,
     "licenseKey": "LTV-1Y-A81E14-A5BE52-322D54",
     "machineId": "WIN-FRAUD-PC-99",

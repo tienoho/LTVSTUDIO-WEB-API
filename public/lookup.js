@@ -294,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.valid) {
         if (navDocsLink) navDocsLink.style.display = 'inline-flex';
+        document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'inline');
         if (navAdminProfilePill) {
           navAdminProfilePill.style.display = 'inline-flex';
           if (navAdminName) navAdminName.textContent = data.username || 'Admin';
@@ -325,6 +326,19 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
   }
+
+  
+  // ── QUICK SAMPLE CHIPS CLICK HANDLER ──────────────────────
+  document.querySelectorAll('.lookup-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const key = chip.textContent.trim();
+      if (publicLookupInput) {
+        publicLookupInput.value = key;
+        if (btnClearLookupInput) btnClearLookupInput.style.display = 'block';
+        performLicenseLookup(key);
+      }
+    });
+  });
 
   checkAdminSessionLookup();
 

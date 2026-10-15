@@ -94,12 +94,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function showLockScreen() {
     if (docsAuthRequiredCard) docsAuthRequiredCard.style.display = 'flex';
     if (docsProtectedContent) docsProtectedContent.style.display = 'none';
+    document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'none');
     if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
   }
 
   function unlockDocs(username) {
     if (docsAuthRequiredCard) docsAuthRequiredCard.style.display = 'none';
     if (docsProtectedContent) docsProtectedContent.style.display = 'block';
+    document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'inline');
     if (docsSessionAdminName) docsSessionAdminName.textContent = username;
     if (navAdminProfilePill) {
       navAdminProfilePill.style.display = 'inline-flex';
