@@ -17,7 +17,7 @@ def run_rbac_test_suite():
     print("🛡️  KIỂM THỬ HỆ THỐNG PHÂN QUYỀN QUẢN TRỊ 3 VAI TRÒ (RBAC TEST)")
     print("==================================================================")
 
-    proc = subprocess.Popen(["node", TSX_CLI, "server.ts"], cwd=PROJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(["node", TSX_CLI, "local-server.ts"], cwd=PROJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(2)
 
     try:

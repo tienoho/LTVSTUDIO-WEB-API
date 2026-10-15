@@ -43,7 +43,7 @@ def run_tests():
     try:
         urllib.request.urlopen(f"{BASE_URL}/api/health", timeout=1)
     except Exception:
-        proc = subprocess.Popen(["node", TSX_CLI, "server.ts"], cwd=PROJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(["node", TSX_CLI, "local-server.ts"], cwd=PROJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(2)
 
     # 1. Đăng nhập tài khoản admin với mật khẩu băm

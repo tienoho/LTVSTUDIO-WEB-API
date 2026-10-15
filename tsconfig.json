@@ -13,6 +13,6 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["api/**/*", "types/**/*", "server.ts", "src/**/*"],
+  "include": ["api/**/*", "types/**/*", "local-server.ts", "src/**/*"],
   "exclude": ["node_modules", "dist", "public"]
 }

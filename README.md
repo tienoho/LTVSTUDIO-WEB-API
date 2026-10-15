@@ -8,7 +8,7 @@ Dự án được xây dựng hoàn toàn bằng **TypeScript (Strict Mode)**, h
 
 ## 🌟 ĐẶC ĐIỂM NỔI BẬT
 
-- **💎 100% TypeScript Type-Safe:** Toàn bộ hệ sinh thái (`api/`, `src/`, `types/`, `server.ts`) được định kiểu chặt chẽ, loại bỏ hoàn toàn nguy cơ lỗi runtime.
+- **💎 100% TypeScript Type-Safe:** Toàn bộ hệ sinh thái (`api/`, `src/`, `types/`, `local-server.ts`) được định kiểu chặt chẽ, loại bỏ hoàn toàn nguy cơ lỗi runtime.
 - **⚛️ Giao diện React 19 Hiện Đại (Vite SPA):**
   - Giao diện người dùng Cyberpunk Glassmorphism đẳng cấp với Tailwind CSS v4 & Lucide Icons.
   - Phân tách trang hoàn chỉnh với React Router: Trang chủ (`/`), Tra cứu (`/lookup`), Quản trị (`/admin`), Tài liệu API (`/docs`).
@@ -59,7 +59,7 @@ web_api/
 ├── 📁 types/                    # Shared Type definitions & Interfaces toàn diện
 ├── 📁 public/                   # Thư mục tĩnh dự phòng tương thích ngược
 ├── 📁 data/                     # CSDL JSON dự phòng (licenses, logs, version, users)
-├── 📄 server.ts                 # Máy chủ HTTP phục vụ API & React SPA fallback trên máy Local/VPS
+├── 📄 local-server.ts           # Máy chủ HTTP phục vụ API & React SPA fallback trên máy Local/VPS
 ├── 📄 vite.config.mts           # Cấu hình Vite 8, React plugin, Tailwind & API proxy
 ├── 📄 start_server.bat          # File click đúp tự động build & khởi chạy server
 ├── 📄 tsconfig.json             # Cấu hình TypeScript Strict Mode (ES2022 / NodeNext)

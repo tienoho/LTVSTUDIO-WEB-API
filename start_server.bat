@@ -31,8 +31,8 @@ echo [*] Dang khoi dong Web API & React SPA Server (TypeScript) tren cong 8080..
 start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:8080/"
 
 if exist "node_modules\tsx\dist\cli.mjs" (
-    node node_modules\tsx\dist\cli.mjs server.ts
+    node node_modules\tsx\dist\cli.mjs local-server.ts
 ) else (
-    npx tsx server.ts
+    npx tsx local-server.ts
 )
 pause

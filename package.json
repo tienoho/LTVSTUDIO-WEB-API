@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "LTVStudio License Verification & Version Update Management Web API (TypeScript)",
   "scripts": {
-    "start": "tsx server.ts",
-    "dev": "tsx watch server.ts",
+    "start": "tsx local-server.ts",
+    "dev": "tsx watch local-server.ts",
     "dev:ui": "vite",
     "build:ui": "vite build --outDir dist",
     "build": "vite build --outDir dist && tsc",

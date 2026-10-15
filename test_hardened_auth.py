@@ -17,7 +17,7 @@ def run_hardened_auth_test():
     print("🔒 LTVSTUDIO WEB API - HARDENED AUTHENTICATION & DEFENSE TEST SUITE")
     print("==================================================================")
 
-    proc = subprocess.Popen(["node", TSX_CLI, "server.ts"], cwd=PROJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(["node", TSX_CLI, "local-server.ts"], cwd=PROJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(2)
 
     try:
