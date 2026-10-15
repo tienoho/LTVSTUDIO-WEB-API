@@ -49,6 +49,9 @@ export async function apiRequest<T = any>(
   }
 
   if (!response.ok) {
+    if (response.status === 401 && endpoint !== '/api/admin/login' && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     const errorMsg = responseData?.message || responseData?.error || `Lỗi máy chủ (${response.status})`;
     const error: any = new Error(errorMsg);
     error.status = response.status;

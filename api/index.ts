@@ -7,7 +7,7 @@ import http from 'http';
 import * as neonDb from './db';
 import { HttpContext } from './http/context';
 import { checkRateLimit } from './security/rate-limiter';
-import { routeRequest } from './router';
+import { routeRequest } from './http/router';
 import { DEFAULT_LICENSES, DEFAULT_VERSION, DEFAULT_USERS } from './config/constants';
 
 // Re-export Security & Auth functions for backwards compatibility with tests and external consumers

@@ -19,8 +19,14 @@ const MIME_TYPES: Record<string, string> = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.webmanifest': 'application/manifest+json'
 };
 
 const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
@@ -123,6 +129,18 @@ process.on('uncaughtException', (err: any) => {
 
 process.on('unhandledRejection', (reason: any) => {
   console.error('[Unhandled Rejection Defended]:', reason);
+});
+
+process.on('exit', (code) => {
+  console.log(`[Process Exit Event] Server process exiting with code: ${code}`);
+});
+
+process.on('SIGINT', () => {
+  console.log('[Process Signal] Received SIGINT');
+});
+
+process.on('SIGTERM', () => {
+  console.log('[Process Signal] Received SIGTERM');
 });
 
 server.listen(PORT, () => {

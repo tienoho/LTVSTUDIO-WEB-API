@@ -17,7 +17,12 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-echo [*] Dang khoi dong Web API & Admin Dashboard (TypeScript) tren cong 8080...
+if not exist "dist\index.html" (
+    echo [*] Phat hien giao dien React SPA chua duoc build. Dang thuc hien build bundle vao dist/...
+    call npm run build:ui
+)
+
+echo [*] Dang khoi dong Web API & React SPA Server (TypeScript) tren cong 8080...
 start "" http://localhost:8080/
 
 if exist "node_modules\tsx\dist\cli.mjs" (

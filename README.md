@@ -30,24 +30,28 @@ Dự án được xây dựng hoàn toàn bằng **TypeScript (Strict Mode)**, h
 
 ```text
 web_api/
-├── 📁 api/
+├── 📁 src/                      # Giao diện Frontend React 19 + TypeScript + Tailwind
+│   ├── App.tsx                  # Root Application & React Router configuration
+│   ├── main.tsx                 # React DOM mount & Context Providers wrapper
+│   ├── index.css                # Design tokens, cyber glow & glassmorphism theme
+│   ├── 📁 pages/                # HomePage, LookupPage, AdminPage, DocsPage, NotFound
+│   ├── 📁 components/           # Navbar, Footer, MobileDrawer, Admin tabs & Modals
+│   ├── 📁 contexts/             # AuthContext, ThemeContext, ToastContext
+│   └── 📁 services/             # API client, AuthService, LicenseService, UserService
+├── 📁 dist/                     # Bundle xuất xưởng của React SPA sau khi Vite build
+├── 📁 api/                      # Backend REST API Serverless & Controllers (TypeScript)
 │   ├── db.ts                    # Tầng truy vấn CSDL Neon Postgres (TypeScript)
+│   ├── router.ts                # Dispatcher định tuyến API RESTful
 │   └── index.ts                 # Hub Serverless Router & Middleware (TypeScript)
-├── 📁 types/
-│   └── index.ts                 # Type definitions & Interfaces toàn diện
-├── 📁 public/
-│   ├── index.html               # Giao diện Portal & Trung tâm Quản trị
-│   ├── style.css                # CSS thiết kế Dark Mode & Glassmorphism
-│   └── app.js                   # Logic Frontend, Bộ lọc nâng cao & Xuất Excel
-├── 📁 data/
-│   ├── licenses.json            # CSDL dự phòng bản quyền
-│   ├── activation_logs.json     # CSDL dự phòng nhật ký kích hoạt
-│   └── version_config.json      # Cấu hình phiên bản cập nhật phần mềm
-├── 📄 server.ts                 # Máy chủ HTTP phát triển cục bộ (TypeScript)
-├── 📄 start_server.bat          # File click đúp khởi động server 1-Click
+├── 📁 types/                    # Shared Type definitions & Interfaces toàn diện
+├── 📁 public/                   # Thư mục tĩnh dự phòng tương thích ngược
+├── 📁 data/                     # CSDL JSON dự phòng (licenses, logs, version, users)
+├── 📄 server.ts                 # Máy chủ HTTP phục vụ API & React SPA fallback
+├── 📄 vite.config.ts            # Cấu hình Vite, React plugin, Tailwind & API proxy
+├── 📄 start_server.bat          # File click đúp tự động build & khởi chạy server
 ├── 📄 tsconfig.json             # Cấu hình TypeScript Strict Mode (ES2022 / NodeNext)
-├── 📄 vercel.json               # Cấu hình định tuyến & Security Headers trên Vercel
-├── 📄 package.json              # Quản lý scripts và dependencies
+├── 📄 vercel.json               # Cấu hình định tuyến SPA & Security Headers trên Vercel
+├── 📄 package.json              # Quản lý scripts (dev, dev:ui, build:ui, build, start)
 ├── 📄 .env.example              # Mẫu cấu hình biến môi trường
 ├── 📄 .gitignore                # Danh sách tệp loại trừ khỏi Git
 ├── 📄 DEPLOY_VERCEL.md          # Hướng dẫn chi tiết triển khai lên Vercel
@@ -63,7 +67,7 @@ Click đúp vào file:
 ```cmd
 start_server.bat
 ```
-*Hệ thống sẽ tự động kích hoạt `tsx` chạy thẳng máy chủ TypeScript tại `http://localhost:8080` và tự động mở trình duyệt.*
+*Hệ thống sẽ tự động kiểm tra bundle React trong `dist/` (tự động build nếu chưa có), kích hoạt `tsx` chạy thẳng máy chủ TypeScript tại `http://localhost:8080` và tự động mở trình duyệt.*
 
 ### Cách 2: Chạy bằng dòng lệnh (CLI)
 Yêu cầu đã cài đặt **Node.js** (khuyên dùng Node 18+ hoặc Node 20+):
@@ -73,24 +77,30 @@ Yêu cầu đã cài đặt **Node.js** (khuyên dùng Node 18+ hoặc Node 20+)
    npm install
    ```
 
-2. **Khởi chạy máy chủ phát triển (Tự reload khi sửa code):**
+2. **Phát triển giao diện React với Vite Hot-Reload (Dev UI):**
+   ```bash
+   npm run dev:ui
+   ```
+   *Vite sẽ chạy tại `http://localhost:5173` với proxy tự động chuyển tiếp `/api` sang backend `8080`.*
+
+3. **Khởi chạy máy chủ Backend Web API (Tự reload khi sửa code):**
    ```bash
    npm run dev
    ```
 
-3. **Khởi chạy máy chủ tiêu chuẩn:**
+4. **Biên dịch giao diện React sang `dist/`:**
+   ```bash
+   npm run build:ui
+   ```
+
+5. **Khởi chạy máy chủ Production (phục vụ cả API và React SPA trên cổng 8080):**
    ```bash
    npm start
    ```
 
-4. **Kiểm tra lỗi kiểu dữ liệu (Typecheck):**
+6. **Kiểm tra lỗi kiểu dữ liệu toàn diện (Typecheck):**
    ```bash
    npm run typecheck
-   ```
-
-5. **Biên dịch mã sang thư mục `dist/` (Tùy chọn):**
-   ```bash
-   npm run build
    ```
 
 ---

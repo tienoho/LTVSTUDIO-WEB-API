@@ -7,8 +7,13 @@ import urllib.request
 import urllib.error
 import json
 import sys
+import subprocess
+import time
+import os
 
 BASE_URL = "http://localhost:8080"
+PROJ = r"D:\Project\LTVSTUDIO_WEB_API\web_api"
+TSX_CLI = os.path.join(PROJ, "node_modules", "tsx", "dist", "cli.mjs")
 
 def request(path, method="GET", data=None, token=None):
     url = f"{BASE_URL}{path}"
@@ -33,6 +38,13 @@ def run_tests():
     print("=" * 66)
     print("🔐 KIỂM THỬ USER DATABASE, SHA-256 + SALT & ĐỔI MẬT KHẨU")
     print("=" * 66)
+
+    proc = None
+    try:
+        urllib.request.urlopen(f"{BASE_URL}/api/health", timeout=1)
+    except Exception:
+        proc = subprocess.Popen(["node", TSX_CLI, "server.ts"], cwd=PROJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(2)
 
     # 1. Đăng nhập tài khoản admin với mật khẩu băm
     status, res = request("/api/admin/login", "POST", {

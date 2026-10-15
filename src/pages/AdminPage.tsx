@@ -13,7 +13,9 @@ import {
   Download, 
   Upload, 
   CheckCircle2, 
-  AlertCircle
+  AlertCircle,
+  Copy,
+  X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -44,6 +46,8 @@ export const AdminPage: React.FC = () => {
   const [extendKey, setExtendKey] = useState<string | null>(null);
   const [changePasswordTarget, setChangePasswordTarget] = useState<string | null>(null);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [batchCreatedKeys, setBatchCreatedKeys] = useState<string[] | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Login Form state (when not authenticated)
   const [username, setUsername] = useState('admin');
@@ -143,8 +147,48 @@ export const AdminPage: React.FC = () => {
       const keys = await LicenseService.createLicenses(data);
       showToast(`Đã tạo thành công ${keys.length} mã bản quyền mới!`, 'success');
       loadData();
+      if (keys.length > 1) {
+        setBatchCreatedKeys(keys.map(k => k.key));
+      }
     } catch (err: any) {
       showToast(err?.message || 'Lỗi khi tạo mã bản quyền', 'error');
+    }
+  };
+
+  const handleBulkAction = async (action: string, keys: string[]) => {
+    if (keys.length === 0) return;
+    if (action === 'reset_hwid') {
+      if (!confirm(`Bạn có chắc chắn muốn mở khóa thiết bị (Reset HWID) cho ${keys.length} mã bản quyền đã chọn?`)) return;
+      let count = 0;
+      for (const key of keys) {
+        try {
+          await LicenseService.resetHwid(key);
+          count++;
+        } catch {}
+      }
+      showToast(`Đã reset HWID cho ${count} mã bản quyền!`, 'success');
+      loadData();
+    } else if (action === 'toggle_status') {
+      let count = 0;
+      for (const key of keys) {
+        try {
+          await LicenseService.toggleStatus(key);
+          count++;
+        } catch {}
+      }
+      showToast(`Đã đổi trạng thái cho ${count} mã bản quyền!`, 'success');
+      loadData();
+    } else if (action === 'delete') {
+      if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${keys.length} mã bản quyền khỏi hệ thống?`)) return;
+      let count = 0;
+      for (const key of keys) {
+        try {
+          await LicenseService.deleteLicense(key);
+          count++;
+        } catch {}
+      }
+      showToast(`Đã xóa vĩnh viễn ${count} mã bản quyền!`, 'success');
+      loadData();
     }
   };
 
@@ -170,6 +214,30 @@ export const AdminPage: React.FC = () => {
       showToast('Đã tải xuống bản sao lưu CSDL JSON thành công!', 'success');
     } catch (err: any) {
       showToast(err?.message || 'Không thể tải bản sao lưu', 'error');
+    }
+  };
+
+  const handleRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!confirm('CẢNH BÁO: Quá trình khôi phục sẽ ghi đè và nạp toàn bộ dữ liệu từ file JSON vào CSDL. Bạn có chắc chắn muốn tiếp tục?')) {
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setIsRestoring(true);
+      const text = await file.text();
+      const parsedData = JSON.parse(text);
+      const msg = await LicenseService.restoreDatabase(parsedData);
+      showToast(msg || 'Đã khôi phục CSDL từ file backup JSON thành công!', 'success');
+      loadData();
+    } catch (err: any) {
+      showToast(err?.message || 'Lỗi khi khôi phục CSDL. Vui lòng kiểm tra định dạng file JSON!', 'error');
+    } finally {
+      setIsRestoring(false);
+      e.target.value = '';
     }
   };
 
@@ -384,6 +452,7 @@ export const AdminPage: React.FC = () => {
           onToggleStatus={handleToggleStatus}
           onExtend={(key) => setExtendKey(key)}
           onDelete={handleDeleteLicense}
+          onBulkAction={handleBulkAction}
         />
       )}
 
@@ -407,28 +476,68 @@ export const AdminPage: React.FC = () => {
       )}
 
       {activeTab === 'backup' && isSuperAdmin && (
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl max-w-xl space-y-4">
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-            <div className="p-2.5 rounded-xl bg-cyan-950 border border-cyan-800 text-cyan-400">
-              <Database className="w-5 h-5" />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+          {/* Card 1: Backup Download */}
+          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl space-y-4 flex flex-col justify-between">
             <div>
-              <h3 className="text-base font-bold text-white">Sao Lưu & Phục Hồi CSDL JSON</h3>
-              <p className="text-xs text-slate-400">Dành riêng cho SuperAdmin để lưu trữ an toàn định kỳ</p>
+              <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
+                <div className="p-2.5 rounded-xl bg-cyan-950 border border-cyan-800 text-cyan-400">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Xuất Bản Sao Lưu CSDL</h3>
+                  <p className="text-xs text-slate-400">Tải trọn vẹn snapshot CSDL ra file JSON</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed mt-4">
+                Hệ thống hỗ trợ xuất toàn bộ danh sách mã bản quyền và cấu hình phiên bản thành file JSON chuẩn. Bạn có thể lưu trữ file này ngoại tuyến an toàn.
+              </p>
             </div>
+
+            <button
+              id="btnExportBackup"
+              onClick={handleBackupDownload}
+              className="w-fit flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all"
+            >
+              <Download className="w-4 h-4" />
+              Tải Xuống Bản Sao Lưu JSON (Backup)
+            </button>
           </div>
 
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Hệ thống hỗ trợ xuất trọn vẹn toàn bộ danh sách mã bản quyền và cấu hình phiên bản thành file JSON chuẩn. Bạn có thể lưu trữ file này để phòng ngừa rủi ro mất mát dữ liệu.
-          </p>
+          {/* Card 2: Restore JSON */}
+          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-xl space-y-4 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
+                <div className="p-2.5 rounded-xl bg-purple-950 border border-purple-800 text-purple-400">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Khôi Phục CSDL Từ JSON</h3>
+                  <p className="text-xs text-slate-400">Nạp lại dữ liệu bản quyền từ file snapshot</p>
+                </div>
+              </div>
 
-          <button
-            onClick={handleBackupDownload}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all"
-          >
-            <Download className="w-4 h-4" />
-            Tải Xuống Bản Sao Lưu JSON (Backup)
-          </button>
+              <p className="text-xs text-slate-300 leading-relaxed mt-4">
+                Chọn file JSON sao lưu trước đó để nạp lại vào hệ thống. Thao tác này sẽ đồng bộ lại các mã bản quyền vào cơ sở dữ liệu.
+              </p>
+            </div>
+
+            <div>
+              <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs cursor-pointer transition-all">
+                <Upload className="w-4 h-4 text-purple-400" />
+                {isRestoring ? 'Đang nạp dữ liệu...' : 'Chọn File JSON Để Phục Hồi'}
+                <input
+                  id="importJsonInput"
+                  type="file"
+                  accept=".json,application/json"
+                  disabled={isRestoring}
+                  onChange={handleRestoreFile}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
         </div>
       )}
 
@@ -453,6 +562,61 @@ export const AdminPage: React.FC = () => {
         onClose={() => setIsChangePasswordOpen(false)}
         targetUsername={changePasswordTarget || undefined}
       />
+
+      {/* Batch Keys Result Modal */}
+      {batchCreatedKeys && (
+        <div id="batchResultModal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={() => setBatchCreatedKeys(null)} className="fixed inset-0 bg-slate-950/80 backdrop-blur-md" />
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl z-10 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-800/60 flex items-center justify-center">
+                  <Key className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Kết Quả Tạo Hàng Loạt</h3>
+                  <p className="text-xs text-slate-400">Đã phát hành <span id="batchCreatedCount" className="text-cyan-400 font-bold">{batchCreatedKeys.length}</span> mã bản quyền mới</p>
+                </div>
+              </div>
+              <button id="btnCloseBatchModal" onClick={() => setBatchCreatedKeys(null)} className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <label className="block text-xs font-semibold text-slate-300">Danh sách mã bản quyền:</label>
+              <textarea
+                id="batchKeysTextArea"
+                readOnly
+                rows={8}
+                value={batchCreatedKeys.join('\n')}
+                className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 focus:outline-none select-all"
+              />
+            </div>
+
+            <div className="mt-4 pt-3 flex items-center justify-end gap-3 border-t border-slate-800">
+              <button
+                id="btnCopyAllBatchKeys"
+                onClick={() => {
+                  navigator.clipboard.writeText(batchCreatedKeys.join('\n'));
+                  showToast('Đã sao chép tất cả mã bản quyền vào bộ nhớ tạm!', 'success');
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
+              >
+                <Copy className="w-4 h-4 text-cyan-400" />
+                Sao Chép Tất Cả
+              </button>
+              <button
+                id="btnFinishBatchModal"
+                onClick={() => setBatchCreatedKeys(null)}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all"
+              >
+                Hoàn Tất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

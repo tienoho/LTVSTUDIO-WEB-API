@@ -17,8 +17,10 @@ Dự án Web API & License Manager của **LTVStudio** đã được cấu hình
    - Chọn kho lưu trữ GitHub của bạn và bấm **Import**.
 
 3. **Cấu hình Deploy:**
-   - **Framework Preset:** Chọn `Other`.
+   - **Framework Preset:** Chọn `Vite` (hoặc `Other`).
    - **Root Directory:** Chọn `web_api` (nếu repo chứa cả project desktop) hoặc để `./` (nếu repo chỉ chứa thư mục web_api).
+   - **Build Command:** `npm run build` (tự động chạy `vite build --outDir dist && tsc`).
+   - **Output Directory:** `dist`.
    - **Environment Variables (Biến môi trường - Tùy chọn):**
      * `ADMIN_SECRET`: Đặt mật khẩu quản trị của bạn (Mặc định nếu không đặt là: `ltvstudio_secret_admin_2026`).
 

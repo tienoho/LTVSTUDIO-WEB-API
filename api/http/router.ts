@@ -3,18 +3,18 @@
  * Adheres to Open/Closed Principle (OCP) and Single Responsibility Principle (SRP)
  */
 
-import { HttpContext } from './http/context';
-import { AuthController } from './controllers/auth.controller';
-import { UserController } from './controllers/user.controller';
-import { VersionController } from './controllers/version.controller';
-import { HealthController } from './controllers/health.controller';
-import { LicenseController } from './controllers/license.controller';
+import { HttpContext } from './context';
+import { AuthController } from '../controllers/auth.controller';
+import { UserController } from '../controllers/user.controller';
+import { VersionController } from '../controllers/version.controller';
+import { HealthController } from '../controllers/health.controller';
+import { LicenseController } from '../controllers/license.controller';
 
 export async function routeRequest(ctx: HttpContext): Promise<void> {
   const { pathname, method } = ctx;
 
-  // 1. Health & Metrics
-  if (pathname === '/api/health' && method === 'GET') {
+  // 1. Health & Metrics (supports /api, /api/, and /api/health)
+  if ((pathname === '/api' || pathname === '/api/' || pathname === '/api/health') && method === 'GET') {
     return await HealthController.getHealth(ctx);
   }
   if (pathname === '/api/admin/stats' && method === 'GET') {

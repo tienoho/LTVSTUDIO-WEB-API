@@ -7,8 +7,13 @@ import urllib.request
 import urllib.error
 import json
 import sys
+import subprocess
+import time
+import os
 
 BASE_URL = "http://localhost:8080"
+PROJ = r"D:\Project\LTVSTUDIO_WEB_API\web_api"
+TSX_CLI = os.path.join(PROJ, "node_modules", "tsx", "dist", "cli.mjs")
 
 def request(path, method="GET", data=None, token=None):
     url = f"{BASE_URL}{path}"
@@ -33,6 +38,13 @@ def run_edge_cases():
     print("=" * 72)
     print("🛡️  RÀ SOÁT KỸ LƯỠNG & KIỂM THỬ TRƯỜNG HỢP BIÊN (SECURITY EDGE CASES)")
     print("=" * 72)
+
+    proc = None
+    try:
+        urllib.request.urlopen(f"{BASE_URL}/api/health", timeout=1)
+    except Exception:
+        proc = subprocess.Popen(["node", TSX_CLI, "server.ts"], cwd=PROJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(2)
 
     # 1. Đăng nhập 3 tài khoản chuẩn
     s_admin, res_admin = request("/api/admin/login", "POST", {"username": "admin", "password": "ltvstudio_secret_admin_2026"})

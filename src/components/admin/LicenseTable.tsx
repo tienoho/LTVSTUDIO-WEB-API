@@ -15,7 +15,8 @@ import {
   AlertCircle,
   ShieldAlert,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 import type { License, AdminRole } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
@@ -43,6 +44,7 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
   onToggleStatus,
   onExtend,
   onDelete,
+  onBulkAction,
 }) => {
   const { showToast } = useToast();
 
@@ -157,6 +159,65 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
     showToast('Đã sao chép mẫu phiếu bàn giao bản quyền cho khách hàng!', 'success');
   };
 
+  const handleBulkResetHwid = async () => {
+    if (selectedKeys.length === 0) return;
+    if (onBulkAction) {
+      await onBulkAction('reset_hwid', selectedKeys);
+      setSelectedKeys([]);
+      return;
+    }
+    if (!confirm(`Bạn có chắc chắn muốn mở khóa thiết bị (Reset HWID) cho ${selectedKeys.length} bản quyền đã chọn?`)) return;
+    let count = 0;
+    for (const key of selectedKeys) {
+      try {
+        await onResetHwid(key);
+        count++;
+      } catch {}
+    }
+    showToast(`Đã reset HWID cho ${count} mã bản quyền!`, 'success');
+    setSelectedKeys([]);
+    onRefresh();
+  };
+
+  const handleBulkToggleStatus = async () => {
+    if (selectedKeys.length === 0) return;
+    if (onBulkAction) {
+      await onBulkAction('toggle_status', selectedKeys);
+      setSelectedKeys([]);
+      return;
+    }
+    let count = 0;
+    for (const key of selectedKeys) {
+      try {
+        await onToggleStatus(key);
+        count++;
+      } catch {}
+    }
+    showToast(`Đã đổi trạng thái cho ${count} mã bản quyền!`, 'success');
+    setSelectedKeys([]);
+    onRefresh();
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedKeys.length === 0) return;
+    if (onBulkAction) {
+      await onBulkAction('delete', selectedKeys);
+      setSelectedKeys([]);
+      return;
+    }
+    if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedKeys.length} mã bản quyền?`)) return;
+    let count = 0;
+    for (const key of selectedKeys) {
+      try {
+        await onDelete(key);
+        count++;
+      } catch {}
+    }
+    showToast(`Đã xóa vĩnh viễn ${count} mã bản quyền!`, 'success');
+    setSelectedKeys([]);
+    onRefresh();
+  };
+
   return (
     <div className="space-y-4">
       {/* Role Banner Notification */}
@@ -254,6 +315,56 @@ export const LicenseTable: React.FC<LicenseTableProps> = ({
           )}
         </div>
       </div>
+
+      {/* Bulk Action Bar when items selected */}
+      {selectedKeys.length > 0 && !isAuditor && (
+        <div id="bulkActionBar" className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/40 shadow-lg backdrop-blur-xl animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 text-xs font-bold text-cyan-300">
+            <Check className="w-4 h-4 text-cyan-400" />
+            <span id="bulkSelectedCount">Đã chọn <strong>{selectedKeys.length}</strong> mã bản quyền</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              id="btnBulkResetHwid"
+              onClick={handleBulkResetHwid}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-amber-300 hover:bg-slate-800 text-xs font-semibold transition-colors"
+            >
+              <Unlock className="w-3.5 h-3.5 text-amber-400" />
+              Reset HWID Hàng Loạt
+            </button>
+
+            <button
+              id="btnBulkToggleRevoke"
+              onClick={handleBulkToggleStatus}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-colors"
+            >
+              <Ban className="w-3.5 h-3.5" />
+              Khóa / Mở Khóa
+            </button>
+
+            {isSuperAdmin && (
+              <button
+                id="btnBulkDelete"
+                onClick={handleBulkDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 text-xs font-semibold transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                Xóa Hàng Loạt
+              </button>
+            )}
+
+            <button
+              id="btnBulkDeselect"
+              onClick={() => setSelectedKeys([])}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Bỏ chọn tất cả"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main License Table */}
       <div className="rounded-2xl border border-slate-800 bg-slate-950/60 overflow-hidden shadow-xl backdrop-blur-xl">
