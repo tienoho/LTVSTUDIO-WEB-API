@@ -2732,3 +2732,39 @@ input:focus, select:focus, textarea:focus {
     display: inline-flex !important;
   }
 }
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.85rem !important;
+    line-height: 1.25 !important;
+  }
+  .hero-subtitle {
+    font-size: 0.95rem !important;
+  }
+  .hero-cta-group {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  .hero-cta-group .btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .modal-box {
+    padding: 1.25rem 1rem !important;
+    margin: 0.5rem !important;
+    max-width: 95vw !important;
+  }
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .endpoint-pill {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  .card-action-bar, .bulk-action-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+

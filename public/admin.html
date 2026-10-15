@@ -458,9 +458,46 @@
                   <button class="btn btn-primary btn-lg" id="btnSaveVersionConfig">
                     <i class="fa-solid fa-floppy-disk"></i> Xuất Bản &amp; Lưu Cập Nhật
                   </button>
+                  <div id="versionRoleWarning" class="role-notice-banner role-warning-banner" style="display: none; margin-top: 0.75rem;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Chỉ tài khoản vai trò <strong>SuperAdmin</strong> mới có quyền cập nhật cấu hình OTA phiên bản phần mềm.</span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <!-- Live Desktop Dialog Preview -->
+            <div class="preview-desktop-box">
+              <div class="preview-header">
+                <i class="fa-solid fa-display"></i>
+                <span>Xem Trước Hộp Thoại Trên Client (Desktop Preview)</span>
+              </div>
+              <div class="client-dialog-mockup">
+                <div class="mockup-top">
+                  <div class="mockup-dots"><span></span><span></span><span></span></div>
+                  <span class="mockup-title">LTVStudio - Cập Nhật Phiên Bản</span>
+                </div>
+                <div class="mockup-body">
+                  <div class="mockup-icon-row">
+                    <div class="mockup-sparkle"><i class="fa-solid fa-sparkles"></i></div>
+                    <div>
+                      <h4 id="previewDialogTitle">Đã có bản cập nhật mới: v1.0.0</h4>
+                      <p class="mockup-sub">Bạn có muốn tải về và cài đặt ngay bây giờ?</p>
+                    </div>
+                  </div>
+                  <div class="mockup-changelog-box" id="previewChangelogBox">
+                    • Ra mắt phiên bản LTVStudio 1.0.0 Pro Edition
+                  </div>
+                  <div class="mockup-footer">
+                    <span class="mockup-btn cancel">Bỏ qua</span>
+                    <span class="mockup-btn update">Cập Nhật Ngay</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- SUBTAB 3: INTEGRATED API DOCUMENTATION (DÀNH CHO ADMIN) -->
         <div class="subtab-pane" id="subtab-docs" style="display: none;">
           <div class="docs-section-card" style="margin-bottom: 1.5rem;">
@@ -550,39 +587,6 @@
                 <div class="endpoint-pill" style="justify-content: space-between;">
                   <div><span class="method-badge method-delete">DELETE</span> <span>/api/admin/licenses/:key</span></div>
                   <span style="color: var(--text-muted); font-size: 0.82rem;">Xóa vĩnh viễn key khỏi cơ sở dữ liệu</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-            <!-- Live Desktop Dialog Preview -->
-            <div class="preview-desktop-box">
-              <div class="preview-header">
-                <i class="fa-solid fa-display"></i>
-                <span>Xem Trước Hộp Thoại Trên Client (Desktop Preview)</span>
-              </div>
-              <div class="client-dialog-mockup">
-                <div class="mockup-top">
-                  <div class="mockup-dots"><span></span><span></span><span></span></div>
-                  <span class="mockup-title">LTVStudio - Cập Nhật Phiên Bản</span>
-                </div>
-                <div class="mockup-body">
-                  <div class="mockup-icon-row">
-                    <div class="mockup-sparkle"><i class="fa-solid fa-sparkles"></i></div>
-                    <div>
-                      <h4 id="previewDialogTitle">Đã có bản cập nhật mới: v1.0.0</h4>
-                      <p class="mockup-sub">Bạn có muốn tải về và cài đặt ngay bây giờ?</p>
-                    </div>
-                  </div>
-                  <div class="mockup-changelog-box" id="previewChangelogBox">
-                    • Ra mắt phiên bản LTVStudio 1.0.0 Pro Edition
-                  </div>
-                  <div class="mockup-footer">
-                    <span class="mockup-btn cancel">Bỏ qua</span>
-                    <span class="mockup-btn update">Cập Nhật Ngay</span>
-                  </div>
                 </div>
               </div>
             </div>

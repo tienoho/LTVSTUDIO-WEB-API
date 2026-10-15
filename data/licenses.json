@@ -1398,5 +1398,69 @@
     "expiresAt": "LIFETIME",
     "lastVerifiedAt": "2026-10-15T11:36:24.634Z",
     "activatedAt": "2026-10-15T11:36:24.603Z"
+  },
+  {
+    "key": "LTV-PRO-0974CF-1CA183-6AE21A",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T12:03:43.499Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T12:03:43.534Z",
+    "activatedAt": "2026-10-15T12:03:43.506Z"
+  },
+  {
+    "key": "LTV-PRO-B3BBC3-57702F-F8083E",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "RBAC SuperAdmin Test",
+    "notes": "",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T12:04:36.710Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-PRO-4D35D6-54BE98-2CF957",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T12:06:05.828Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T12:06:05.863Z",
+    "activatedAt": "2026-10-15T12:06:05.835Z"
+  },
+  {
+    "key": "LTV-PRO-BE7B09-0DC56E-3D9E6C",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T12:16:10.581Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T12:16:10.619Z",
+    "activatedAt": "2026-10-15T12:16:10.588Z"
+  },
+  {
+    "key": "LTV-PRO-44A84D-628CD8-30579E",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T12:18:31.954Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T12:18:31.990Z",
+    "activatedAt": "2026-10-15T12:18:31.961Z"
   }
 ]

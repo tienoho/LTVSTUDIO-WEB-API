@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "changelog": "• Ra mắt bản thương mại 1.0.0",
-  "download_url": "https://ltvstudio-web-api.vercel.app/downloads/LTVStudio-Windows-Setup.exe",
+  "version": "1.0.1",
+  "changelog": "RBAC test update",
+  "download_url": "https://example.com/dl",
   "force_update": false,
-  "updated_at": "2026-10-15T10:50:22.272Z"
+  "updated_at": "2026-10-15T12:18:37.963Z"
 }

@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── ADMIN SESSION VERIFICATION ─────────────────────────────
   async function checkAdminDocsAccess() {
+    initTheme();
     const token = localStorage.getItem('ltv_admin_session_token');
 
     if (!token) {
@@ -132,15 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
 
-      if (data.valid) {
-        // Authenticated: show protected content
-        unlockDocs(data.username || 'admin');
+      if (data.valid || data.authenticated) {
+        const u = data.user || {};
+        unlockDocs(u.username || data.username || 'admin', u.role || 'SuperAdmin');
       } else {
         localStorage.removeItem('ltv_admin_session_token');
         showLockScreen();
       }
     } catch (err) {
-      // Offline fallback: if secret exists, still require connection
       showLockScreen();
     }
   }
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
   }
 
-  function unlockDocs(username) {
+  function unlockDocs(username, role = 'SuperAdmin') {
     if (docsAuthRequiredCard) docsAuthRequiredCard.style.display = 'none';
     if (docsProtectedContent) docsProtectedContent.style.display = 'block';
     document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'inline');
@@ -160,6 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (navAdminProfilePill) {
       navAdminProfilePill.style.display = 'inline-flex';
       if (navAdminName) navAdminName.textContent = username;
+      if (navAdminRoleBadge) {
+        navAdminRoleBadge.textContent = role;
+        navAdminRoleBadge.className = 'role-badge ' + (
+          role === 'SuperAdmin' ? 'role-badge-superadmin' :
+          role === 'Support' ? 'role-badge-support' : 'role-badge-auditor'
+        );
+      }
     }
   }
 
@@ -197,9 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (res.ok && data.token) {
           localStorage.setItem('ltv_admin_session_token', data.token);
-          localStorage.setItem('ltv_admin_secret', secret);
-          showToast('✓ Đăng nhập quản trị thành công! Đã mở khóa tài liệu API.', 'success');
-          unlockDocs(username);
+          localStorage.setItem('ltv_admin_role', data.user?.role || 'SuperAdmin');
+          localStorage.setItem('ltv_admin_permissions', JSON.stringify(data.user?.permissions || []));
+          showToast(`✓ Đăng nhập thành công với vai trò ${data.user?.role || 'Admin'}!`, 'success');
+          unlockDocs(username, data.user?.role || 'SuperAdmin');
         } else {
           if (docsAuthError) {
             docsAuthError.style.display = 'flex';
