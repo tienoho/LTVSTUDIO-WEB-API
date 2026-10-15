@@ -1263,5 +1263,66 @@
     "expiresAt": "LIFETIME",
     "lastVerifiedAt": "2026-10-15T09:42:35.143Z",
     "activatedAt": "2026-10-15T09:42:35.115Z"
+  },
+  {
+    "key": "LTV-1Y-A81E14-A5BE52-322D54",
+    "type": "LTVStudio Bản Quyền 1 Năm",
+    "plan": "1_YEAR",
+    "customer": "Khách Test Review",
+    "notes": "",
+    "machineId": null,
+    "status": "REVOKED",
+    "createdAt": "2026-10-15T09:43:43.211Z",
+    "expiresAt": "2027-12-14T09:43:43.210Z",
+    "lastVerifiedAt": "2026-10-15T09:43:43.216Z",
+    "activatedAt": "2026-10-15T09:43:43.216Z"
+  },
+  {
+    "key": "LTV-PRO-8EC47A-6F2820-4CB1A0",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Đại Lý VIP",
+    "notes": "",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T09:43:43.241Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-PRO-CF40C9-DB7688-68ED49",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Đại Lý VIP",
+    "notes": "",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T09:43:43.241Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-PRO-73A2D7-12E7E1-842F8D",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Đại Lý VIP",
+    "notes": "",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T09:43:43.241Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-PRO-D24EDD-364231-1CB6C8",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Đại Lý VIP",
+    "notes": "",
+    "machineId": null,
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T09:43:43.242Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": null
   }
 ]
