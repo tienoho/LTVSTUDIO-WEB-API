@@ -47,9 +47,8 @@ web_api/
 │   ├── 📁 contexts/             # AuthContext, ThemeContext, ToastContext
 │   └── 📁 services/             # API client, AuthService, LicenseService, UserService
 ├── 📁 dist/                     # Bundle xuất xưởng của React SPA sau khi Vite build
-├── 📁 api/                      # Vercel Serverless Function Endpoints (chỉ 2 functions gọn nhẹ)
-│   ├── index.ts                 # Main Serverless Entrypoint cho /api & Security Middleware
-│   └── [...slug].ts             # Vercel Catch-All Serverless Route cho /api/*
+├── 📁 api/                      # Vercel Serverless Function Endpoint (duy nhất 1 unified function)
+│   └── index.ts                 # Main Serverless Entrypoint cho /api/* & Security Middleware
 ├── 📁 lib/                      # Tầng nghiệp vụ Backend & Utilities (decoupled khỏi api/)
 │   ├── 📁 config/               # Constants, Default Seed Data, Roles & Permissions
 │   ├── 📁 controllers/          # Auth, License, User, Version, Health Controllers

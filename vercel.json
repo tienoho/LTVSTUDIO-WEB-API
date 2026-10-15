@@ -5,6 +5,8 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index.ts?apiPath=:path*" },
+    { "source": "/api", "destination": "/api/index.ts" },
     { "source": "/((?!api/|api$).*)", "destination": "/index.html" }
   ],
   "headers": [
