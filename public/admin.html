@@ -115,12 +115,15 @@
           </div>
           <div class="admin-pill-info">
             <span class="admin-pill-name" id="navAdminName">Admin</span>
-            <span class="admin-pill-badge">Online</span>
+            <span class="role-badge role-badge-superadmin" id="navAdminRoleBadge">SuperAdmin</span>
           </div>
           <button class="btn-pill-logout" id="btnNavLogout" title="Đăng xuất quản trị viên">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
+        <button class="btn-theme-toggle" id="btnThemeToggle" title="Chuyển đổi giao diện Sáng / Tối">
+          <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
+        </button>
         <div class="health-pill" id="navHealthPill" title="Bấm để xem trạng thái sức khỏe hệ thống & CSDL">
           <span class="status-indicator-dot"></span>
           <span id="healthPillText">API Online</span>
@@ -128,9 +131,30 @@
         <a href="/#download" class="btn btn-sm btn-glow" id="navDownloadBtn">
           <i class="fa-solid fa-download"></i> Tải Cho Windows
         </a>
+        <button class="btn-mobile-nav" id="btnMobileNav" title="Menu điều hướng">
+          <i class="fa-solid fa-bars"></i>
+        </button>
       </div>
     </div>
   </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-drawer-overlay" id="mobileDrawerOverlay"></div>
+  <div class="mobile-drawer-pane" id="mobileDrawerPane">
+    <div class="mobile-drawer-header">
+      <div class="brand">
+        <div class="logo-box"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        <span class="brand-title">LTVStudio</span>
+      </div>
+      <button class="mobile-drawer-close" id="btnCloseMobileDrawer">&times;</button>
+    </div>
+    <div class="mobile-drawer-links">
+      <a href="/" class="mobile-drawer-link"><i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về</a>
+      <a href="/lookup" class="mobile-drawer-link"><i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền</a>
+      <a href="/docs" class="mobile-drawer-link"><i class="fa-solid fa-book-bookmark"></i> Tài Liệu API</a>
+      <a href="/admin" class="mobile-drawer-link active"><i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống</a>
+    </div>
+  </div>
 
   <main class="page-body">
     <div class="admin-page-wrapper">
@@ -147,8 +171,27 @@
               Quản Trị Hệ Thống
             </h2>
             <p style="font-size: 0.88rem; color: var(--text-muted);">
-              Đăng nhập tài khoản quản trị viên để quản lý mã bản quyền, thiết bị và phát hành bản cập nhật OTA.
+              Đăng nhập để quản lý mã bản quyền, thiết bị và phát hành bản cập nhật OTA theo vai trò được cấp.
             </p>
+          </div>
+
+          <!-- Role Selector Pills -->
+          <div class="role-selector-group">
+            <label class="role-selector-label">Chọn vai trò đăng nhập nhanh:</label>
+            <div class="role-pill-row">
+              <button type="button" class="role-pill-btn active" id="btnRoleSuperAdmin" data-role="SuperAdmin" data-user="admin" title="Toàn quyền hệ thống & OTA">
+                <i class="fa-solid fa-crown" style="color: #fb7185;"></i>
+                <span>SuperAdmin</span>
+              </button>
+              <button type="button" class="role-pill-btn" id="btnRoleSupport" data-role="Support" data-user="support" title="Cấp key & Reset HWID">
+                <i class="fa-solid fa-headset" style="color: #38bdf8;"></i>
+                <span>Support</span>
+              </button>
+              <button type="button" class="role-pill-btn" id="btnRoleAuditor" data-role="Auditor" data-user="auditor" title="Chỉ đọc & Xuất Excel">
+                <i class="fa-solid fa-chart-line" style="color: #34d399;"></i>
+                <span>Auditor</span>
+              </button>
+            </div>
           </div>
 
           <!-- Error Alert Banner -->
@@ -163,14 +206,23 @@
               <input type="text" id="adminUsernameInput" value="admin" placeholder="Tài khoản..." autocomplete="username">
             </div>
 
-            <div class="form-group" style="margin-bottom: 1.5rem;">
+            <div class="form-group" style="margin-bottom: 1.2rem;">
               <label style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.4rem; display: block;">Mật khẩu hoặc Khóa Bí Mật</label>
               <div class="password-input-wrapper">
                 <input type="password" id="adminSecretInput" placeholder="Nhập mật khẩu quản trị..." autocomplete="current-password">
                 <button type="button" class="btn-toggle-password" id="btnTogglePassword" title="Hiện/ẩn mật khẩu">
                   <i class="fa-regular fa-eye" id="togglePasswordIcon"></i>
                 </button>
+                <span id="btnTogglePasswordEye" style="display: none;"></span>
               </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label class="custom-checkbox" style="font-size: 0.85rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="checkRememberAdmin" checked>
+                <span class="checkmark"></span>
+                <span>Ghi nhớ phiên đăng nhập (24 giờ)</span>
+              </label>
             </div>
 
             <button type="submit" class="btn btn-primary" id="btnSubmitAdminAuth" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; justify-content: center;">
@@ -198,7 +250,7 @@
             <button class="btn btn-outline" id="btnExportBackup" title="Tải file sao lưu CSDL">
               <i class="fa-solid fa-download"></i> Sao Lưu JSON
             </button>
-            <label class="btn btn-outline file-upload-btn" title="Nạp lại CSDL từ file JSON">
+            <label class="btn btn-outline file-upload-btn" id="lblImportBackup" title="Nạp lại CSDL từ file JSON">
               <i class="fa-solid fa-upload"></i> Khôi Phục JSON
               <input type="file" id="importJsonInput" accept=".json" style="display: none;">
             </label>
@@ -209,6 +261,12 @@
               <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng Xuất
             </button>
           </div>
+        </div>
+
+        <!-- Dynamic Role Notice Banner -->
+        <div id="roleNoticeBanner" class="role-notice-banner" style="display: none;">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span id="roleNoticeText">Đang sử dụng hệ thống với quyền hạn theo vai trò.</span>
         </div>
 
         <!-- KPI Metrics -->
@@ -409,7 +467,7 @@
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
               <div>
                 <h2><i class="fa-solid fa-network-wired text-cyan"></i> Tài Liệu Tích Hợp API Quản Trị &amp; Khách Hàng</h2>
-                <p style="margin-bottom: 0;">Xem và sao chép cấu trúc endpoint, chữ ký HMAC-SHA256, và mã nguồn tích hợp vào ứng dụng PodStudio Transform.</p>
+                <p style="margin-bottom: 0;">Xem và sao chép cấu trúc endpoint, chữ ký HMAC-SHA256, và mã nguồn tích hợp vào ứng dụng LTVStudio.</p>
               </div>
               <a href="/docs" target="_blank" class="btn btn-outline btn-sm">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở Trang Đầy Đủ

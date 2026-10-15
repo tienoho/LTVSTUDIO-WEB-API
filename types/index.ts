@@ -72,10 +72,20 @@ export interface VerifyResponseBody {
   nonce?: string;       // Cryptographic random nonce
 }
 
+export type AdminRole = 'SuperAdmin' | 'Support' | 'Auditor';
+
+export interface AdminRolePermission {
+  role: AdminRole;
+  displayName: string;
+  description: string;
+  permissions: string[];
+}
+
 export interface AdminLoginRequest {
   username?: string;
   password?: string;
   secret?: string;
+  role?: AdminRole | string;
 }
 
 export interface AdminLoginResponse {
@@ -84,7 +94,8 @@ export interface AdminLoginResponse {
   expiresIn?: number;
   user?: {
     username: string;
-    role: string;
+    role: AdminRole | string;
+    permissions?: string[];
     loginAt?: string;
   };
   message: string;
@@ -93,9 +104,12 @@ export interface AdminLoginResponse {
 export interface AdminSessionVerifyResponse {
   success: boolean;
   authenticated: boolean;
+  valid?: boolean;
+  username?: string;
   user?: {
     username: string;
-    role: string;
+    role: AdminRole | string;
+    permissions?: string[];
   };
   message: string;
 }

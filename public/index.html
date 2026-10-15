@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LTVStudio - AI Dubbing & Software Cloud Portal</title>
-  <meta name="description" content="Cổng thông tin và phát hành phần mềm chính thức LTVStudio. Tải về PodStudio Transform, tra cứu bản quyền chính hãng và tài liệu API.">
+  <meta name="description" content="Cổng thông tin và phát hành phần mềm chính thức LTVStudio. Tải về LTVStudio, tra cứu bản quyền chính hãng và tài liệu API.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -54,17 +54,29 @@
           </div>
           <div class="admin-pill-info">
             <span class="admin-pill-name" id="navAdminName">Admin</span>
-            <span class="admin-pill-badge">Online</span>
+            <span class="role-badge role-badge-superadmin" id="navAdminRoleBadge" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">SuperAdmin</span>
           </div>
           <button class="btn-pill-logout" id="btnNavLogout" title="Đăng xuất quản trị viên">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
+          <button id="btnAdminLogout" style="display: none;" title="Đăng xuất"></button>
         </div>
 
         <div class="health-pill" id="navHealthPill" title="Bấm để xem trạng thái sức khỏe hệ thống & CSDL">
           <span class="status-indicator-dot"></span>
           <span id="healthPillText">API Online</span>
         </div>
+
+        <!-- Theme Toggle -->
+        <button class="btn-theme-toggle" id="btnThemeToggle" title="Chuyển chế độ Sáng / Tối">
+          <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
+        </button>
+
+        <!-- Mobile Drawer Hamburger -->
+        <button class="btn-mobile-nav" id="btnMobileNav" title="Mở danh mục điều hướng">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
         <a href="#download" class="btn btn-sm btn-glow" id="navDownloadBtn">
           <i class="fa-solid fa-download"></i> Tải Cho Windows
         </a>
@@ -124,7 +136,7 @@
       <!-- FEATURES HIGHLIGHTS -->
       <div class="features-section">
         <div class="section-heading text-center">
-          <h2>Tính Năng Vượt Trội Của PodStudio Transform</h2>
+          <h2>Tính Năng Vượt Trội Của LTVStudio</h2>
           <p>Tối ưu hóa quy trình sản xuất nội dung video, podcast và lồng tiếng tự động chuẩn studio.</p>
         </div>
 
@@ -174,7 +186,7 @@
           <div class="client-dialog-mockup">
             <div class="mockup-top">
               <div class="mockup-dots"><span></span><span></span><span></span></div>
-              <span class="mockup-title">PodStudio Transform - Cập Nhật Phiên Bản</span>
+              <span class="mockup-title">LTVStudio - Cập Nhật Phiên Bản</span>
             </div>
             <div class="mockup-body">
               <div class="mockup-icon-row">
@@ -185,7 +197,7 @@
                 </div>
               </div>
               <div class="mockup-changelog-box" id="previewChangelogBox">
-                • Ra mắt phiên bản PodStudio Transform 1.0.0 Pro Edition
+                • Ra mắt phiên bản LTVStudio 1.0.0 Pro Edition
               </div>
               <div class="mockup-footer">
                 <span class="mockup-btn cancel">Bỏ qua</span>
@@ -208,7 +220,7 @@
             <div class="feature-icon-box gradient-1">
               <i class="fa-solid fa-sliders"></i>
             </div>
-            <h3>PodStudio Transform Pro</h3>
+            <h3>LTVStudio Pro Studio</h3>
             <p>Biên tập âm thanh, lồng tiếng video tự động và tạo video sóng nhạc podcast chuyên nghiệp.</p>
           </div>
 
@@ -377,9 +389,77 @@
     </div>
   </footer>
 
-  <div id="toastContainer" class="toast-container"></div>
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-drawer-overlay" id="mobileDrawerOverlay"></div>
+  <div class="mobile-drawer-pane" id="mobileDrawerPane">
+    <div class="mobile-drawer-header">
+      <div class="brand">
+        <div class="logo-box">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">LTVStudio</span>
+          <span class="brand-tag">Cloud Portal</span>
+        </div>
+      </div>
+      <button class="modal-close" id="btnCloseMobileDrawer">&times;</button>
+    </div>
+    <div class="mobile-drawer-links">
+      <a href="/" class="mobile-drawer-link active">
+        <i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về
+      </a>
+      <a href="/lookup" class="mobile-drawer-link">
+        <i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền
+      </a>
+      <a href="/docs" class="mobile-drawer-link" id="mobileNavDocsLink" style="display: none;">
+        <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
+      </a>
+      <a href="/admin" class="mobile-drawer-link">
+        <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
+      </a>
+    </div>
+  </div>
 
-  
+  <!-- MODAL: ADMIN LOGIN (TEST & QUICK ACCESS) -->
+  <div class="modal-overlay" id="adminAuthModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-shield-halved text-cyan"></i> Đăng Nhập Quản Trị</h3>
+        <button class="modal-close" id="btnCloseAuthModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="admin-login-error" id="adminLoginError" style="display: none; background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 8px; padding: 0.75rem 1rem; color: #f43f5e; margin-bottom: 1rem; font-size: 0.85rem;">
+          <i class="fa-solid fa-triangle-exclamation"></i> <span id="adminLoginErrorText">Mật khẩu không chính xác!</span>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" style="display: block; margin-bottom: 0.35rem; font-size: 0.85rem; color: var(--text-secondary);">Tài khoản quản trị</label>
+          <input type="text" class="form-input" id="adminUsernameInput" placeholder="admin" value="admin" style="width: 100%;">
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" style="display: block; margin-bottom: 0.35rem; font-size: 0.85rem; color: var(--text-secondary);">Mật khẩu (Admin Secret)</label>
+          <div style="position: relative;">
+            <input type="password" class="form-input" id="adminSecretInput" placeholder="Nhập mật khẩu..." style="width: 100%; padding-right: 2.5rem;">
+            <button type="button" id="btnTogglePasswordEye" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer;">
+              <i class="fa-regular fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; color: var(--text-muted);">
+            <input type="checkbox" id="checkRememberAdmin" checked> Ghi nhớ phiên làm việc
+          </label>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button class="btn btn-glass" id="btnCancelAdminAuth" style="flex: 1;">Hủy</button>
+          <button class="btn btn-primary" id="btnSubmitAdminAuth" style="flex: 2;">
+            <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
   <script src="portal.js"></script>

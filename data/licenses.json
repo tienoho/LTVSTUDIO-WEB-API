@@ -1385,5 +1385,18 @@
     "createdAt": "2026-10-15T10:50:22.245Z",
     "expiresAt": "LIFETIME",
     "lastVerifiedAt": null
+  },
+  {
+    "key": "LTV-PRO-6E38AB-D48CB1-680786",
+    "type": "LTVStudio Pro Lifetime",
+    "plan": "PRO",
+    "customer": "Hardened Auth Test",
+    "notes": "",
+    "machineId": "HWID-AUTH-TEST-MACHINE-001",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-15T11:36:24.595Z",
+    "expiresAt": "LIFETIME",
+    "lastVerifiedAt": "2026-10-15T11:36:24.634Z",
+    "activatedAt": "2026-10-15T11:36:24.603Z"
   }
 ]

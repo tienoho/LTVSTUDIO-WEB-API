@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tra Cứu Bản Quyền - LTVStudio Cloud Portal</title>
-  <meta name="description" content="Cổng tra cứu bản quyền chính hãng LTVStudio và PodStudio Transform. Kiểm tra thời hạn, gói dịch vụ, thiết bị phần cứng (HWID) và trạng thái kích hoạt.">
+  <meta name="description" content="Cổng tra cứu bản quyền chính hãng LTVStudio và LTVStudio. Kiểm tra thời hạn, gói dịch vụ, thiết bị phần cứng (HWID) và trạng thái kích hoạt.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -135,23 +135,35 @@
       </nav>
 
       <div class="nav-actions">
-                <!-- Admin Profile Pill -->
+        <!-- Admin Profile Pill -->
         <div class="admin-profile-pill" id="navAdminProfilePill" style="display: none;">
           <div class="admin-avatar-box">
             <i class="fa-solid fa-user-shield"></i>
           </div>
           <div class="admin-pill-info">
             <span class="admin-pill-name" id="navAdminName">Admin</span>
-            <span class="admin-pill-badge">Online</span>
+            <span class="role-badge role-badge-superadmin" id="navAdminRoleBadge" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">SuperAdmin</span>
           </div>
           <button class="btn-pill-logout" id="btnNavLogout" title="Đăng xuất quản trị viên">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
+
         <div class="health-pill" id="navHealthPill" title="Bấm để xem trạng thái máy chủ & CSDL">
           <span class="status-indicator-dot"></span>
           <span id="healthPillText">API Online</span>
         </div>
+
+        <!-- Theme Toggle -->
+        <button class="btn-theme-toggle" id="btnThemeToggle" title="Chuyển chế độ Sáng / Tối">
+          <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
+        </button>
+
+        <!-- Mobile Drawer Hamburger -->
+        <button class="btn-mobile-nav" id="btnMobileNav" title="Mở danh mục điều hướng">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
         <a href="/#download" class="btn btn-sm btn-glow" id="navDownloadBtn">
           <i class="fa-solid fa-download"></i> Tải Cho Windows
         </a>
@@ -187,7 +199,7 @@
         <div class="lookup-chips-row">
           <span style="font-size: 0.8rem; color: var(--text-muted);">Mã thử nghiệm nhanh:</span>
           <span class="lookup-chip" data-key="LTV-PRO-8888-9999-LIFETIME">LTV-PRO-8888-9999-LIFETIME</span>
-          <span class="lookup-chip" data-key="PODSTUDIO-PRO-2026">PODSTUDIO-PRO-2026</span>
+          <span class="lookup-chip" data-key="LTV-PRO-MASTER-2026-DEV">LTV-PRO-MASTER-2026-DEV</span>
           <span class="lookup-chip" data-key="DEV-MASTER-BYPASS">DEV-MASTER-BYPASS</span>
         </div>
         <div class="lookup-hint" style="margin-top: 1rem; text-align: center;">
@@ -245,7 +257,7 @@
           <i class="fa-solid fa-circle-question text-cyan"></i> Hướng Dẫn Kích Hoạt Trên Ứng Dụng Desktop
         </h3>
         <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
-          Thực hiện 3 bước đơn giản để mở khóa toàn bộ tính năng cao cấp của PodStudio Transform.
+          Thực hiện 3 bước đơn giản để mở khóa toàn bộ tính năng cao cấp của LTVStudio.
         </p>
 
         <div class="guide-steps-grid">
@@ -253,7 +265,7 @@
             <div class="step-number-badge">1</div>
             <h4 style="margin-bottom: 0.5rem; color: #f8fafc;">Khởi Động Ứng Dụng</h4>
             <p style="font-size: 0.88rem; color: var(--text-muted);">
-              Mở phần mềm <strong>PodStudio Transform</strong> trên máy tính Windows hoặc macOS. Nhấp vào biểu tượng <em>Cài Đặt / Bản Quyền</em>.
+              Mở phần mềm <strong>LTVStudio</strong> trên máy tính Windows hoặc macOS. Nhấp vào biểu tượng <em>Cài Đặt / Bản Quyền</em>.
             </p>
           </div>
 
@@ -358,6 +370,37 @@
       </div>
     </div>
   </footer>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-drawer-overlay" id="mobileDrawerOverlay"></div>
+  <div class="mobile-drawer-pane" id="mobileDrawerPane">
+    <div class="mobile-drawer-header">
+      <div class="brand">
+        <div class="logo-box">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">LTVStudio</span>
+          <span class="brand-tag">Cloud Portal</span>
+        </div>
+      </div>
+      <button class="modal-close" id="btnCloseMobileDrawer">&times;</button>
+    </div>
+    <div class="mobile-drawer-links">
+      <a href="/" class="mobile-drawer-link">
+        <i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về
+      </a>
+      <a href="/lookup" class="mobile-drawer-link active">
+        <i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền
+      </a>
+      <a href="/docs" class="mobile-drawer-link" id="mobileNavDocsLink" style="display: none;">
+        <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
+      </a>
+      <a href="/admin" class="mobile-drawer-link">
+        <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
+      </a>
+    </div>
+  </div>
 
   <div id="toastContainer" class="toast-container"></div>
 

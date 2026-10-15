@@ -35,6 +35,59 @@ document.addEventListener('DOMContentLoaded', () => {
   const healthMemoryRss = document.getElementById('healthMemoryRss');
   const healthUptime = document.getElementById('healthUptime');
 
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  const themeToggleIcon = document.getElementById('themeToggleIcon');
+  const btnMobileNav = document.getElementById('btnMobileNav');
+  const mobileDrawerOverlay = document.getElementById('mobileDrawerOverlay');
+  const mobileDrawerPane = document.getElementById('mobileDrawerPane');
+  const btnCloseMobileDrawer = document.getElementById('btnCloseMobileDrawer');
+
+  // ── THEME CONTROLLER ───────────────────────────────────────
+  function initTheme() {
+    const saved = localStorage.getItem('ltv_theme') || 'dark';
+    applyTheme(saved);
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ltv_theme', theme);
+    if (themeToggleIcon) {
+      if (theme === 'light') {
+        themeToggleIcon.className = 'fa-solid fa-sun';
+        themeToggleIcon.style.color = '#f59e0b';
+      } else {
+        themeToggleIcon.className = 'fa-solid fa-moon';
+        themeToggleIcon.style.color = '';
+      }
+    }
+  }
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      showToast(`Đã chuyển sang giao diện ${next === 'light' ? 'Sáng (Light)' : 'Tối (Dark)'}`, 'info', 2000);
+    });
+  }
+
+  // ── MOBILE DRAWER ──────────────────────────────────────────
+  function toggleMobileDrawer(open) {
+    if (mobileDrawerOverlay && mobileDrawerPane) {
+      if (open) {
+        mobileDrawerOverlay.classList.add('active');
+        mobileDrawerPane.classList.add('active');
+      } else {
+        mobileDrawerOverlay.classList.remove('active');
+        mobileDrawerPane.classList.remove('active');
+      }
+    }
+  }
+
+  if (btnMobileNav) btnMobileNav.addEventListener('click', () => toggleMobileDrawer(true));
+  if (btnCloseMobileDrawer) btnCloseMobileDrawer.addEventListener('click', () => toggleMobileDrawer(false));
+  if (mobileDrawerOverlay) mobileDrawerOverlay.addEventListener('click', () => toggleMobileDrawer(false));
+
   // ── XSS PREVENTION HELPER (CWE-79) ─────────────────────────
   function escapeHtml(str) {
     if (!str || typeof str !== 'string') return '';
@@ -273,16 +326,22 @@ document.addEventListener('DOMContentLoaded', () => {
     performLicenseLookup(keyParam);
   }
 
+  // Init theme on load
+  initTheme();
+
   // ── ADMIN NAVBAR REVEAL (DOCS ACCESS CONTROL) ──────────────
   async function checkAdminSessionLookup() {
     const token = localStorage.getItem('ltv_admin_session_token');
     const navDocsLink = document.getElementById('navDocsLink');
     const navAdminProfilePill = document.getElementById('navAdminProfilePill');
     const navAdminName = document.getElementById('navAdminName');
+    const navAdminRoleBadge = document.getElementById('navAdminRoleBadge');
     const btnNavLogout = document.getElementById('btnNavLogout');
+    const mobileNavDocsLink = document.getElementById('mobileNavDocsLink');
 
     if (!token) {
       if (navDocsLink) navDocsLink.style.display = 'none';
+      if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'none';
       if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
       return;
     }
@@ -292,16 +351,27 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data.valid) {
+      if (data.valid || data.authenticated) {
+        const u = data.user || {};
+        const role = u.role || 'SuperAdmin';
         if (navDocsLink) navDocsLink.style.display = 'inline-flex';
+        if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'flex';
         document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'inline');
         if (navAdminProfilePill) {
           navAdminProfilePill.style.display = 'inline-flex';
-          if (navAdminName) navAdminName.textContent = data.username || 'Admin';
+          if (navAdminName) navAdminName.textContent = u.username || data.username || 'Admin';
+          if (navAdminRoleBadge) {
+            navAdminRoleBadge.textContent = role;
+            navAdminRoleBadge.className = 'role-badge ' + (
+              role === 'SuperAdmin' ? 'role-badge-superadmin' :
+              role === 'Support' ? 'role-badge-support' : 'role-badge-auditor'
+            );
+          }
         }
       } else {
         localStorage.removeItem('ltv_admin_session_token');
         if (navDocsLink) navDocsLink.style.display = 'none';
+        if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'none';
         if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
       }
     } catch (e) {
@@ -321,6 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch (e) {}
         }
         localStorage.removeItem('ltv_admin_session_token');
+        localStorage.removeItem('ltv_admin_role');
+        localStorage.removeItem('ltv_admin_permissions');
         localStorage.removeItem('ltv_admin_secret');
         window.location.reload();
       };

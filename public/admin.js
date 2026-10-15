@@ -7,17 +7,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── STATE ──────────────────────────────────────────────────
   let adminSessionToken = localStorage.getItem('ltv_admin_session_token') || '';
   let adminSessionExpires = parseInt(localStorage.getItem('ltv_admin_session_expires') || '0', 10);
+  let currentAdminRole = localStorage.getItem('ltv_admin_role') || 'SuperAdmin';
+  let currentAdminPermissions = [];
+  try {
+    currentAdminPermissions = JSON.parse(localStorage.getItem('ltv_admin_permissions') || '[]');
+  } catch (e) {
+    currentAdminPermissions = [];
+  }
   let adminLicenses = [];
   const selectedKeySet = new Set();
   const currentAdminFilter = { search: '', status: 'ALL', plan: 'ALL' };
+  let selectedLoginRole = 'SuperAdmin';
 
   // ── DOM ELEMENTS ───────────────────────────────────────────
   const adminLoginSection = document.getElementById('adminLoginSection');
   const adminDashboardSection = document.getElementById('adminDashboardSection');
   const navAdminProfilePill = document.getElementById('navAdminProfilePill');
   const navAdminName = document.getElementById('navAdminName');
+  const navAdminRoleBadge = document.getElementById('navAdminRoleBadge');
   const btnNavLogout = document.getElementById('btnNavLogout');
   const btnAdminLogout = document.getElementById('btnAdminLogout');
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  const themeToggleIcon = document.getElementById('themeToggleIcon');
+  const btnMobileNav = document.getElementById('btnMobileNav');
+  const mobileDrawerOverlay = document.getElementById('mobileDrawerOverlay');
+  const mobileDrawerPane = document.getElementById('mobileDrawerPane');
+  const btnCloseMobileDrawer = document.getElementById('btnCloseMobileDrawer');
 
   // Login Form
   const adminLoginForm = document.getElementById('adminLoginForm');
@@ -28,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminLoginErrorText = document.getElementById('adminLoginErrorText');
   const btnTogglePassword = document.getElementById('btnTogglePassword');
   const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+  const rolePillBtns = document.querySelectorAll('.role-pill-btn');
 
   // KPI Metrics
   const admTotalKeys = document.getElementById('admTotalKeys');
@@ -192,13 +208,137 @@ document.addEventListener('DOMContentLoaded', () => {
     return headers;
   }
 
+  // ── THEME CONTROLLER ───────────────────────────────────────
+  function initTheme() {
+    const savedTheme = localStorage.getItem('ltv_theme') || 'dark';
+    applyTheme(savedTheme);
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ltv_theme', theme);
+    if (themeToggleIcon) {
+      if (theme === 'light') {
+        themeToggleIcon.className = 'fa-solid fa-sun';
+        themeToggleIcon.style.color = '#f59e0b';
+      } else {
+        themeToggleIcon.className = 'fa-solid fa-moon';
+        themeToggleIcon.style.color = '';
+      }
+    }
+  }
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      showToast(`Đã chuyển sang giao diện ${next === 'light' ? 'Sáng (Light)' : 'Tối (Dark)'}`, 'info', 2000);
+    });
+  }
+
+  // ── MOBILE DRAWER ──────────────────────────────────────────
+  function toggleMobileDrawer(open) {
+    if (mobileDrawerOverlay && mobileDrawerPane) {
+      if (open) {
+        mobileDrawerOverlay.classList.add('active');
+        mobileDrawerPane.classList.add('active');
+      } else {
+        mobileDrawerOverlay.classList.remove('active');
+        mobileDrawerPane.classList.remove('active');
+      }
+    }
+  }
+
+  if (btnMobileNav) btnMobileNav.addEventListener('click', () => toggleMobileDrawer(true));
+  if (btnCloseMobileDrawer) btnCloseMobileDrawer.addEventListener('click', () => toggleMobileDrawer(false));
+  if (mobileDrawerOverlay) mobileDrawerOverlay.addEventListener('click', () => toggleMobileDrawer(false));
+
+  // ── ROLE PILLS SELECTOR (LOGIN) ────────────────────────────
+  if (rolePillBtns.length > 0) {
+    rolePillBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        rolePillBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedLoginRole = btn.getAttribute('data-role') || 'SuperAdmin';
+        const user = btn.getAttribute('data-user') || 'admin';
+        if (adminUsernameInput) adminUsernameInput.value = user;
+        if (adminSecretInput) adminSecretInput.focus();
+      });
+    });
+  }
+
+  // ── ROLE-BASED ACCESS CONTROL (RBAC) ───────────────────────
+  function applyRolePermissions(role = 'SuperAdmin', permissions = []) {
+    currentAdminRole = role;
+    currentAdminPermissions = permissions;
+    localStorage.setItem('ltv_admin_role', currentAdminRole);
+    localStorage.setItem('ltv_admin_permissions', JSON.stringify(currentAdminPermissions));
+
+    if (navAdminRoleBadge) {
+      navAdminRoleBadge.textContent = currentAdminRole;
+      navAdminRoleBadge.className = 'role-badge ' + (
+        currentAdminRole === 'SuperAdmin' ? 'role-badge-superadmin' :
+        currentAdminRole === 'Support' ? 'role-badge-support' : 'role-badge-auditor'
+      );
+    }
+
+    const roleNoticeBanner = document.getElementById('roleNoticeBanner');
+    const roleNoticeText = document.getElementById('roleNoticeText');
+    if (roleNoticeBanner && roleNoticeText) {
+      if (currentAdminRole === 'SuperAdmin') {
+        roleNoticeBanner.style.display = 'none';
+      } else if (currentAdminRole === 'Support') {
+        roleNoticeBanner.style.display = 'flex';
+        roleNoticeBanner.className = 'role-notice-banner';
+        roleNoticeText.innerHTML = '<strong>Tài khoản Support:</strong> Được phép tạo mã key, mở khóa thiết bị (HWID), gia hạn. <em>Không có quyền xóa vĩnh viễn key và cấu hình phát hành OTA.</em>';
+      } else if (currentAdminRole === 'Auditor') {
+        roleNoticeBanner.style.display = 'flex';
+        roleNoticeBanner.className = 'role-notice-banner role-warning-banner';
+        roleNoticeText.innerHTML = '<strong>Tài khoản Auditor:</strong> Quyền chỉ xem (Read-only). Được xem dữ liệu thống kê, danh sách bản quyền và xuất file Excel. <em>Mọi thao tác chỉnh sửa đều bị khóa.</em>';
+      }
+    }
+
+    // Buttons visibility
+    if (btnExportBackup) btnExportBackup.style.display = currentAdminRole === 'SuperAdmin' ? 'inline-flex' : 'none';
+    const lblImport = document.getElementById('lblImportBackup');
+    if (lblImport) lblImport.style.display = currentAdminRole === 'SuperAdmin' ? 'inline-flex' : 'none';
+
+    if (btnOpenCreateModal) {
+      btnOpenCreateModal.style.display = (currentAdminRole === 'SuperAdmin' || currentAdminRole === 'Support') ? 'inline-flex' : 'none';
+    }
+
+    const btnSaveVer = document.getElementById('btnSaveVersionConfig');
+    const versionWarning = document.getElementById('versionRoleWarning');
+    if (btnSaveVer) {
+      if (currentAdminRole === 'SuperAdmin') {
+        btnSaveVer.disabled = false;
+        btnSaveVer.style.display = 'inline-flex';
+        if (versionWarning) versionWarning.style.display = 'none';
+      } else {
+        btnSaveVer.disabled = true;
+        btnSaveVer.style.display = 'none';
+        if (versionWarning) versionWarning.style.display = 'flex';
+      }
+    }
+
+    if (btnBulkDelete) {
+      btnBulkDelete.style.display = currentAdminRole === 'SuperAdmin' ? 'inline-flex' : 'none';
+    }
+    const isMutationAllowed = (currentAdminRole === 'SuperAdmin' || currentAdminRole === 'Support');
+    if (btnBulkResetHwid) btnBulkResetHwid.style.display = isMutationAllowed ? 'inline-flex' : 'none';
+    if (btnBulkToggleRevoke) btnBulkToggleRevoke.style.display = isMutationAllowed ? 'inline-flex' : 'none';
+    if (btnBulkExtend) btnBulkExtend.style.display = isMutationAllowed ? 'inline-flex' : 'none';
+  }
+
   // ── AUTH & SESSION CONTROLLER ──────────────────────────────
-  function setAuthenticatedState(isAuthenticated, username = 'Admin') {
+  function setAuthenticatedState(isAuthenticated, username = 'Admin', role = 'SuperAdmin', permissions = []) {
     if (isAuthenticated) {
       if (adminLoginSection) adminLoginSection.style.display = 'none';
       if (adminDashboardSection) adminDashboardSection.style.display = 'block';
       if (navAdminProfilePill) navAdminProfilePill.style.display = 'flex';
       if (navAdminName) navAdminName.textContent = username;
+      applyRolePermissions(role, permissions);
     } else {
       if (adminLoginSection) adminLoginSection.style.display = 'flex';
       if (adminDashboardSection) adminDashboardSection.style.display = 'none';
@@ -208,9 +348,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function checkAdminSession() {
+    initTheme();
     if (!adminSessionToken || Date.now() > adminSessionExpires) {
       localStorage.removeItem('ltv_admin_session_token');
       localStorage.removeItem('ltv_admin_session_expires');
+      localStorage.removeItem('ltv_admin_role');
+      localStorage.removeItem('ltv_admin_permissions');
       adminSessionToken = '';
       setAuthenticatedState(false);
       return;
@@ -221,8 +364,9 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Authorization': `Bearer ${adminSessionToken}` }
       });
       const data = await res.json();
-      if (data.valid) {
-        setAuthenticatedState(true, data.username || 'Admin');
+      if (data.valid || data.authenticated) {
+        const u = data.user || {};
+        setAuthenticatedState(true, u.username || data.username || 'Admin', u.role || currentAdminRole, u.permissions || []);
         loadAdminData();
       } else {
         localStorage.removeItem('ltv_admin_session_token');
@@ -260,7 +404,13 @@ document.addEventListener('DOMContentLoaded', () => {
             'Content-Type': 'application/json',
             'x-admin-key': secret 
           },
-          body: JSON.stringify({ username, secret, password: secret, adminKey: secret })
+          body: JSON.stringify({ 
+            username, 
+            secret, 
+            password: secret, 
+            adminKey: secret,
+            role: selectedLoginRole 
+          })
         });
         const data = await res.json();
 
@@ -270,8 +420,9 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.setItem('ltv_admin_session_token', adminSessionToken);
           localStorage.setItem('ltv_admin_session_expires', adminSessionExpires.toString());
 
-          setAuthenticatedState(true, data.username || 'Admin');
-          showToast('✓ Đăng nhập quản trị thành công!', 'success');
+          const u = data.user || {};
+          setAuthenticatedState(true, u.username || username || 'Admin', u.role || selectedLoginRole, u.permissions || []);
+          showToast(`✓ Đăng nhập thành công với vai trò ${u.role || selectedLoginRole}!`, 'success');
           loadAdminData();
         } else {
           if (adminLoginError) {
@@ -317,6 +468,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     localStorage.removeItem('ltv_admin_session_token');
     localStorage.removeItem('ltv_admin_session_expires');
+    localStorage.removeItem('ltv_admin_role');
+    localStorage.removeItem('ltv_admin_permissions');
     adminSessionToken = '';
     setAuthenticatedState(false);
     showToast('Đã đăng xuất tài khoản quản trị.', 'info');
@@ -344,8 +497,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // ── SKELETON LOADER ────────────────────────────────────────
+  function renderTableSkeleton() {
+    if (!adminTableBody) return;
+    adminTableBody.innerHTML = Array.from({ length: 5 }).map(() => `
+      <tr>
+        <td><div class="skeleton-box" style="width: 18px; height: 18px; border-radius: 4px;"></div></td>
+        <td><div class="skeleton-box" style="width: 150px; height: 20px;"></div></td>
+        <td><div class="skeleton-box" style="width: 130px; height: 20px;"></div></td>
+        <td><div class="skeleton-box" style="width: 70px; height: 20px;"></div></td>
+        <td><div class="skeleton-box" style="width: 100px; height: 20px;"></div></td>
+        <td><div class="skeleton-box" style="width: 110px; height: 20px;"></div></td>
+        <td><div class="skeleton-box" style="width: 90px; height: 20px;"></div></td>
+        <td class="text-right"><div class="skeleton-box" style="width: 130px; height: 28px; margin-left: auto;"></div></td>
+      </tr>
+    `).join('');
+  }
+
   // ── DATA CONTROLLER ────────────────────────────────────────
   async function loadAdminData() {
+    renderTableSkeleton();
     try {
       // 1. Stats
       const statsRes = await fetch('/api/admin/stats', { headers: getAdminHeaders() });
@@ -416,12 +587,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filtered.length === 0) {
       adminTableBody.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center py-4 text-muted">
-            <i class="fa-solid fa-inbox fa-2x" style="opacity: 0.4; margin-bottom: 0.5rem; display: block;"></i>
-            Không tìm thấy mã bản quyền nào phù hợp với bộ lọc.
+          <td colspan="8">
+            <div class="empty-state-card">
+              <div class="empty-state-icon">
+                <i class="fa-solid fa-folder-open"></i>
+              </div>
+              <h4 class="empty-state-title">Không tìm thấy mã bản quyền nào</h4>
+              <p class="empty-state-desc">Không có kết quả phù hợp với từ khóa tìm kiếm hoặc bộ lọc hiện tại. Thử đổi bộ lọc hoặc thêm mã mới.</p>
+              ${(currentAdminFilter.search || currentAdminFilter.status !== 'ALL' || currentAdminFilter.plan !== 'ALL') ? `
+                <button class="btn btn-sm btn-outline" id="btnResetFiltersEmptyState" style="margin-top: 0.5rem;">
+                  <i class="fa-solid fa-rotate-left"></i> Đặt Lại Bộ Lọc
+                </button>
+              ` : ''}
+            </div>
           </td>
         </tr>
       `;
+      const btnReset = document.getElementById('btnResetFiltersEmptyState');
+      if (btnReset) {
+        btnReset.addEventListener('click', () => {
+          if (adminSearchInput) adminSearchInput.value = '';
+          if (adminStatusFilter) adminStatusFilter.value = 'ALL';
+          if (adminPlanFilter) adminPlanFilter.value = 'ALL';
+          currentAdminFilter.search = '';
+          currentAdminFilter.status = 'ALL';
+          currentAdminFilter.plan = 'ALL';
+          if (btnClearSearch) btnClearSearch.style.display = 'none';
+          renderAdminTable();
+        });
+      }
       return;
     }
 
@@ -442,10 +636,41 @@ document.addEventListener('DOMContentLoaded', () => {
       const expiresStr = lic.expiresAt ? lic.expiresAt.substring(0, 10) : '<span class="text-cyan">Vĩnh viễn</span>';
       const planTag = `<span class="plan-tag">${escapeHtml(lic.plan || 'PRO')}</span>`;
 
+      // Role-based actions
+      let actionsHtml = '';
+      if (currentAdminRole === 'Auditor') {
+        actionsHtml = `<span class="badge" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; font-size: 0.75rem; border: 1px solid rgba(148, 163, 184, 0.25);"><i class="fa-solid fa-eye"></i> Chỉ xem</span>`;
+      } else {
+        const canDelete = currentAdminRole === 'SuperAdmin';
+        actionsHtml = `
+          <div class="action-btn-group">
+            <button class="btn-action-icon" onclick="openExtendModal('${lic.key}')" title="Gia hạn hoặc đổi gói">
+              <i class="fa-solid fa-calendar-plus text-cyan"></i>
+            </button>
+            <button class="btn-action-icon" onclick="resetHwid('${lic.key}')" title="Reset HWID (Cho phép gán máy mới)">
+              <i class="fa-solid fa-arrows-rotate text-emerald"></i>
+            </button>
+            <button class="btn-action-icon" onclick="toggleRevoke('${lic.key}', '${lic.status}')" title="${lic.status === 'REVOKED' ? 'Mở khóa key' : 'Khóa key này'}">
+              <i class="fa-solid fa-ban ${lic.status === 'REVOKED' ? 'text-emerald' : 'text-amber'}"></i>
+            </button>
+            <button class="btn-action-icon" onclick="openHandoverModal('${lic.key}')" title="Tạo phiếu bàn giao khách">
+              <i class="fa-solid fa-paper-plane text-cyan"></i>
+            </button>
+            ${canDelete ? `
+              <button class="btn-action-icon text-rose" onclick="deleteLicense('${lic.key}')" title="Xóa key">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      const isAuditor = currentAdminRole === 'Auditor';
+
       return `
         <tr data-key="${lic.key}">
           <td>
-            <input type="checkbox" class="row-checkbox" data-key="${lic.key}" ${isChecked}>
+            <input type="checkbox" class="row-checkbox" data-key="${lic.key}" ${isChecked} ${isAuditor ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}>
           </td>
           <td>
             <div class="table-key-cell">
@@ -464,23 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${hwidBadge}</td>
           <td>${expiresStr}</td>
           <td class="text-right">
-            <div class="action-btn-group">
-              <button class="btn-action-icon" onclick="openExtendModal('${lic.key}')" title="Gia hạn hoặc đổi gói">
-                <i class="fa-solid fa-calendar-plus text-cyan"></i>
-              </button>
-              <button class="btn-action-icon" onclick="resetHwid('${lic.key}')" title="Reset HWID (Cho phép gán máy mới)">
-                <i class="fa-solid fa-arrows-rotate text-emerald"></i>
-              </button>
-              <button class="btn-action-icon" onclick="toggleRevoke('${lic.key}', '${lic.status}')" title="${lic.status === 'REVOKED' ? 'Mở khóa key' : 'Khóa key này'}">
-                <i class="fa-solid fa-ban ${lic.status === 'REVOKED' ? 'text-emerald' : 'text-amber'}"></i>
-              </button>
-              <button class="btn-action-icon" onclick="openHandoverModal('${lic.key}')" title="Tạo phiếu bàn giao khách">
-                <i class="fa-solid fa-paper-plane text-cyan"></i>
-              </button>
-              <button class="btn-action-icon text-rose" onclick="deleteLicense('${lic.key}')" title="Xóa key">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </div>
+            ${actionsHtml}
           </td>
         </tr>
       `;
@@ -556,6 +765,141 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Bulk Reset HWID
+  if (btnBulkResetHwid) {
+    btnBulkResetHwid.addEventListener('click', () => {
+      if (currentAdminRole === 'Auditor') {
+        showToast('Tài khoản Auditor chỉ có quyền xem dữ liệu!', 'error');
+        return;
+      }
+      if (selectedKeySet.size === 0) return;
+      showCustomConfirm(
+        '<i class="fa-solid fa-arrows-rotate text-cyan"></i> Mở Khóa HWID Hàng Loạt',
+        `Bạn có chắc muốn mở khóa thiết bị (HWID) cho ${selectedKeySet.size} key đã chọn? Khách hàng sẽ có thể kích hoạt trên máy mới.`,
+        async () => {
+          let count = 0;
+          for (const key of selectedKeySet) {
+            try {
+              const res = await fetch('/api/admin/licenses/reset-hwid', {
+                method: 'POST',
+                headers: getAdminHeaders(),
+                body: JSON.stringify({ key })
+              });
+              if (res.ok) count++;
+            } catch (e) {}
+          }
+          showToast(`✓ Đã mở khóa HWID thành công cho ${count} key!`, 'success');
+          selectedKeySet.clear();
+          loadAdminData();
+          updateBulkBar();
+        }
+      );
+    });
+  }
+
+  // Bulk Toggle Revoke
+  if (btnBulkToggleRevoke) {
+    btnBulkToggleRevoke.addEventListener('click', () => {
+      if (currentAdminRole === 'Auditor') {
+        showToast('Tài khoản Auditor chỉ có quyền xem dữ liệu!', 'error');
+        return;
+      }
+      if (selectedKeySet.size === 0) return;
+      showCustomConfirm(
+        '<i class="fa-solid fa-ban text-amber"></i> Đổi Trạng Thái Hàng Loạt',
+        `Bạn có chắc muốn chuyển đổi trạng thái Khóa / Mở cho ${selectedKeySet.size} key đã chọn?`,
+        async () => {
+          let count = 0;
+          for (const key of selectedKeySet) {
+            try {
+              const res = await fetch('/api/admin/licenses/toggle-status', {
+                method: 'POST',
+                headers: getAdminHeaders(),
+                body: JSON.stringify({ key })
+              });
+              if (res.ok) count++;
+            } catch (e) {}
+          }
+          showToast(`✓ Đã cập nhật trạng thái cho ${count} key!`, 'success');
+          selectedKeySet.clear();
+          loadAdminData();
+          updateBulkBar();
+        }
+      );
+    });
+  }
+
+  // Bulk Extend
+  if (btnBulkExtend) {
+    btnBulkExtend.addEventListener('click', () => {
+      if (currentAdminRole === 'Auditor') {
+        showToast('Tài khoản Auditor chỉ có quyền xem dữ liệu!', 'error');
+        return;
+      }
+      if (selectedKeySet.size === 0) return;
+      const daysStr = prompt(`Nhập số ngày muốn gia hạn cho ${selectedKeySet.size} key đã chọn:`, '30');
+      if (!daysStr) return;
+      const days = parseInt(daysStr, 10);
+      if (isNaN(days) || days <= 0) {
+        showToast('Số ngày gia hạn không hợp lệ!', 'error');
+        return;
+      }
+      showCustomConfirm(
+        '<i class="fa-solid fa-calendar-plus text-cyan"></i> Gia Hạn Hàng Loạt',
+        `Gia hạn thêm ${days} ngày cho ${selectedKeySet.size} key đã chọn?`,
+        async () => {
+          let count = 0;
+          for (const key of selectedKeySet) {
+            try {
+              const res = await fetch('/api/admin/licenses/extend', {
+                method: 'POST',
+                headers: getAdminHeaders(),
+                body: JSON.stringify({ key, days })
+              });
+              if (res.ok) count++;
+            } catch (e) {}
+          }
+          showToast(`✓ Đã gia hạn ${days} ngày cho ${count} key!`, 'success');
+          selectedKeySet.clear();
+          loadAdminData();
+          updateBulkBar();
+        }
+      );
+    });
+  }
+
+  // Bulk Delete
+  if (btnBulkDelete) {
+    btnBulkDelete.addEventListener('click', () => {
+      if (currentAdminRole !== 'SuperAdmin') {
+        showToast('Chỉ SuperAdmin mới có quyền xóa vĩnh viễn key!', 'error');
+        return;
+      }
+      if (selectedKeySet.size === 0) return;
+      showCustomConfirm(
+        '<i class="fa-solid fa-trash text-rose"></i> CẢNH BÁO: XÓA HÀNG LOẠT',
+        `Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedKeySet.size} key đã chọn? Hành động này KHÔNG THỂ HOÀN TÁC!`,
+        async () => {
+          let count = 0;
+          for (const key of selectedKeySet) {
+            try {
+              const res = await fetch('/api/admin/licenses/delete', {
+                method: 'POST',
+                headers: getAdminHeaders(),
+                body: JSON.stringify({ key })
+              });
+              if (res.ok) count++;
+            } catch (e) {}
+          }
+          showToast(`✓ Đã xóa vĩnh viễn ${count} key!`, 'info');
+          selectedKeySet.clear();
+          loadAdminData();
+          updateBulkBar();
+        }
+      );
+    });
+  }
+
   // ── ROW ACTIONS (GLOBAL EXPOSURE) ──────────────────────────
   window.copyText = (text) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -564,6 +908,10 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.resetHwid = (key) => {
+    if (currentAdminRole === 'Auditor') {
+      showToast('Tài khoản Auditor chỉ có quyền xem dữ liệu!', 'error');
+      return;
+    }
     showCustomConfirm(
       '<i class="fa-solid fa-arrows-rotate text-cyan"></i> Reset Thiết Bị (HWID)',
       `Bạn có chắc chắn muốn xóa mã thiết bị đã khóa của key [${key}]? Khách hàng sẽ có thể kích hoạt key này trên máy tính mới.`,
@@ -589,6 +937,10 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.toggleRevoke = (key, currentStatus) => {
+    if (currentAdminRole === 'Auditor') {
+      showToast('Tài khoản Auditor chỉ có quyền xem dữ liệu!', 'error');
+      return;
+    }
     const isRevoked = currentStatus === 'REVOKED';
     const newStatus = isRevoked ? 'ACTIVE' : 'REVOKED';
     const actionText = isRevoked ? 'Mở Khóa' : 'Khóa Bản Quyền';
@@ -616,6 +968,10 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.deleteLicense = (key) => {
+    if (currentAdminRole !== 'SuperAdmin') {
+      showToast('Chỉ SuperAdmin mới có quyền xóa mã bản quyền!', 'error');
+      return;
+    }
     showCustomConfirm(
       '<i class="fa-solid fa-trash text-rose"></i> Xóa Vĩnh Viễn Key',
       `CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn mã bản quyền [${key}] khỏi cơ sở dữ liệu? Thao tác này không thể hoàn tác!`,
@@ -641,6 +997,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── EXTEND MODAL ───────────────────────────────────────────
   let currentExtendKey = '';
   window.openExtendModal = (key) => {
+    if (currentAdminRole === 'Auditor') {
+      showToast('Tài khoản Auditor chỉ có quyền xem dữ liệu!', 'error');
+      return;
+    }
     currentExtendKey = key;
     const lic = adminLicenses.find(l => l.key === key);
     if (!lic) return;
@@ -711,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const expiresText = lic.expiresAt ? lic.expiresAt.substring(0, 10) : 'Vĩnh viễn (Trọn đời không hết hạn)';
     const text = `================================================
-🎉 BÀN GIAO BẢN QUYỀN PODSTUDIO TRANSFORM PRO
+🎉 BÀN GIAO BẢN QUYỀN LTVSTUDIO PRO
 ================================================
 Kính gửi: ${lic.customer || 'Quý Khách Hàng'}
 Dịch vụ: Hệ Sinh Thái AI Dubbing & Tách Nhạc LTVStudio
@@ -727,7 +1087,7 @@ Dịch vụ: Hệ Sinh Thái AI Dubbing & Tách Nhạc LTVStudio
 👉 https://ltvstudio-web-api.vercel.app/
 
 📖 HƯỚNG DẪN KÍCH HOẠT:
-1. Tải và cài đặt PodStudio Transform trên máy tính của bạn.
+1. Tải và cài đặt LTVStudio trên máy tính của bạn.
 2. Khởi động phần mềm -> Chọn biểu tượng Cài Đặt (Hình bánh răng).
 3. Dán chính xác Mã Bản Quyền ở trên và nhấn "Xác Thực Bản Quyền".
 4. Phần mềm sẽ tự động kết nối và mở khóa toàn bộ tính năng cao cấp!
@@ -737,7 +1097,7 @@ Dịch vụ: Hệ Sinh Thái AI Dubbing & Tách Nhạc LTVStudio
 • Vui lòng không chia sẻ mã này cho người khác.
 • Nếu cần chuyển máy tính hoặc cài lại Windows, liên hệ Admin để được hỗ trợ reset HWID miễn phí.
 
-Chúc bạn có những trải nghiệm tuyệt vời cùng PodStudio Transform!
+Chúc bạn có những trải nghiệm tuyệt vời cùng LTVStudio!
 ================================================`;
 
     if (handoverTextarea) handoverTextarea.value = text;

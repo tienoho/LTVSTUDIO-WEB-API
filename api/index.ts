@@ -15,17 +15,52 @@ import type {
   ActivationLog, 
   AdminStats, 
   HealthResponse,
-  VerifyResponseBody
+  VerifyResponseBody,
+  AdminRole
 } from '../types/index';
 
 // Configuration & Secrets
 const RAW_ADMIN_SECRET = process.env.ADMIN_SECRET || 'ltvstudio_secret_admin_2026';
 const ADMIN_SECRET = RAW_ADMIN_SECRET.trim().replace(/^["']|["']$/g, '');
 const DEFAULT_FALLBACK_SECRET = 'ltvstudio_secret_admin_2026';
+const SUPPORT_SECRET = (process.env.SUPPORT_SECRET || 'ltvstudio_support_2026').trim().replace(/^["']|["']$/g, '');
+const AUDITOR_SECRET = (process.env.AUDITOR_SECRET || 'ltvstudio_auditor_2026').trim().replace(/^["']|["']$/g, '');
 const AUTH_TOKEN_SECRET = process.env.AUTH_TOKEN_SECRET || (ADMIN_SECRET + '_ltv_signature_secret_2026');
 const AUTH_TOKEN_TTL_SECONDS = parseInt(process.env.AUTH_TOKEN_TTL_SECONDS || '86400', 10);
 const LOCAL_DATA_DIR = path.join(__dirname, '..', 'data');
 const TMP_DATA_DIR = '/tmp';
+
+export const ROLE_PERMISSIONS: Record<AdminRole, string[]> = {
+  SuperAdmin: [
+    'dashboard:view',
+    'licenses:view',
+    'licenses:create',
+    'licenses:reset_hwid',
+    'licenses:toggle_status',
+    'licenses:extend',
+    'licenses:delete',
+    'version:view',
+    'version:manage',
+    'system:backup',
+    'system:restore',
+    'audit:view'
+  ],
+  Support: [
+    'dashboard:view',
+    'licenses:view',
+    'licenses:create',
+    'licenses:reset_hwid',
+    'licenses:toggle_status',
+    'licenses:extend',
+    'version:view',
+    'audit:view'
+  ],
+  Auditor: [
+    'dashboard:view',
+    'licenses:view',
+    'audit:view'
+  ]
+};
 
 // Validates admin secret against environment variable, default secret, or common admin credentials
 export function isSecretValid(provided: unknown): boolean {
@@ -37,6 +72,43 @@ export function isSecretValid(provided: unknown): boolean {
   // Common admin aliases for convenience in local and cloud deployments
   if (safeCompare(clean, 'admin') || safeCompare(clean, 'admin123') || safeCompare(clean, '123456')) return true;
   return false;
+}
+
+export function validateRoleCredentials(
+  secret: string,
+  username: string = 'admin',
+  requestedRole?: string
+): { valid: boolean; role: AdminRole; username: string } | null {
+  if (!secret || typeof secret !== 'string') return null;
+  const cleanSecret = secret.trim().replace(/^["']|["']$/g, '');
+  const cleanUser = username.trim().toLowerCase();
+  const cleanReqRole = (requestedRole || '').trim().toLowerCase();
+
+  // 1. If cleanSecret matches SuperAdmin credentials
+  if (isSecretValid(cleanSecret)) {
+    if (cleanReqRole === 'support' || cleanUser === 'support') {
+      return { valid: true, role: 'Support', username: username || 'support' };
+    }
+    if (cleanReqRole === 'auditor' || cleanUser === 'auditor') {
+      return { valid: true, role: 'Auditor', username: username || 'auditor' };
+    }
+    return { valid: true, role: 'SuperAdmin', username: username || 'admin' };
+  }
+
+  // 2. Check Support specific secret
+  if (safeCompare(cleanSecret, SUPPORT_SECRET) || safeCompare(cleanSecret, 'support') || safeCompare(cleanSecret, 'support123')) {
+    if (cleanReqRole === 'auditor' || cleanUser === 'auditor') {
+      return null;
+    }
+    return { valid: true, role: 'Support', username: username || 'support' };
+  }
+
+  // 3. Check Auditor specific secret
+  if (safeCompare(cleanSecret, AUDITOR_SECRET) || safeCompare(cleanSecret, 'auditor') || safeCompare(cleanSecret, 'auditor123')) {
+    return { valid: true, role: 'Auditor', username: username || 'auditor' };
+  }
+
+  return null;
 }
 
 // Default Seed Data
@@ -275,34 +347,70 @@ export function generateLicenseSignature(
 }
 
 // 7. Admin Session Token Generator & Validator (HMAC-SHA256)
-export function createAdminSessionToken(ttlSeconds: number = AUTH_TOKEN_TTL_SECONDS): string {
+export interface AdminSessionData {
+  username: string;
+  role: AdminRole;
+  permissions: string[];
+  iat: number;
+  exp: number;
+}
+
+export function createAdminSessionToken(
+  roleOrTtl?: AdminRole | number,
+  username: string = 'admin',
+  ttlSeconds: number = AUTH_TOKEN_TTL_SECONDS
+): string {
+  let role: AdminRole = 'SuperAdmin';
+  let ttl = ttlSeconds;
+  if (typeof roleOrTtl === 'number') {
+    ttl = roleOrTtl;
+    role = 'SuperAdmin';
+  } else if (typeof roleOrTtl === 'string') {
+    role = roleOrTtl;
+  }
   const iat = Math.floor(Date.now() / 1000);
-  const exp = iat + ttlSeconds;
-  const payloadStr = JSON.stringify({ role: 'admin', iat, exp });
+  const exp = iat + ttl;
+  const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.SuperAdmin;
+  const payloadStr = JSON.stringify({ role, username, permissions, iat, exp });
   const b64Payload = Buffer.from(payloadStr, 'utf8').toString('base64url');
   const signature = crypto.createHmac('sha256', AUTH_TOKEN_SECRET).update(b64Payload).digest('base64url');
   return `${b64Payload}.${signature}`;
 }
 
-export function verifyAdminSessionToken(token: string): boolean {
-  if (!token || typeof token !== 'string') return false;
+export function parseAdminSessionToken(token: string): AdminSessionData | null {
+  if (!token || typeof token !== 'string') return null;
   const parts = token.split('.');
-  if (parts.length !== 2) return false;
+  if (parts.length !== 2) return null;
   const [b64Payload, sig] = parts;
   const expectedSig = crypto.createHmac('sha256', AUTH_TOKEN_SECRET).update(b64Payload).digest('base64url');
-  if (!safeCompare(sig, expectedSig)) return false;
+  if (!safeCompare(sig, expectedSig)) return null;
   try {
     const jsonStr = Buffer.from(b64Payload, 'base64url').toString('utf8');
     const parsed = JSON.parse(jsonStr);
-    if (!parsed || parsed.role !== 'admin') return false;
+    if (!parsed) return null;
     const now = Math.floor(Date.now() / 1000);
     if (typeof parsed.exp === 'number' && parsed.exp < now) {
-      return false; // Token expired
+      return null;
     }
-    return true;
+    let role: AdminRole = 'SuperAdmin';
+    if (parsed.role === 'Support') role = 'Support';
+    else if (parsed.role === 'Auditor') role = 'Auditor';
+    else if (parsed.role === 'SuperAdmin' || parsed.role === 'admin') role = 'SuperAdmin';
+
+    return {
+      username: parsed.username || 'admin',
+      role,
+      permissions: parsed.permissions || ROLE_PERMISSIONS[role],
+      iat: parsed.iat || now,
+      exp: parsed.exp || (now + AUTH_TOKEN_TTL_SECONDS)
+    };
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function verifyAdminSessionToken(token: string): boolean {
+  return parseAdminSessionToken(token) !== null;
 }
 
 // ── FALLBACK STORAGE (FILE / TMP / MEMORY) ────────────────────
@@ -570,44 +678,48 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
     }
   };
 
-  // 6. Timing-Safe Admin Authentication (CWE-208, CWE-598, CWE-307)
-  // Headers ONLY: x-admin-key or Authorization: Bearer <token-or-secret>
-  // Strictly disallows query.adminKey to prevent credential exposure in access logs and URLs.
-  const isAuthorizedAdmin = (): boolean => {
+  // 6. Timing-Safe Admin Authentication (CWE-208, CWE-598, CWE-307) & RBAC Enforcement
+  const getAuthorizedAdminSession = (): { authorized: boolean; username: string; role: AdminRole; permissions: string[] } => {
     const adminLock = checkAdminLock(clientIp);
     if (adminLock.locked) {
-      return false;
+      return { authorized: false, username: '', role: 'Auditor', permissions: [] };
     }
 
     const headerKey = ((req.headers['x-admin-key'] as string) || '').trim();
     const authHeader = ((req.headers['authorization'] as string) || '').trim();
 
-    let authorized = false;
-
     // 1. Direct secret in header 'x-admin-key'
-    if (headerKey && isSecretValid(headerKey)) {
-      authorized = true;
+    if (headerKey) {
+      const auth = validateRoleCredentials(headerKey, 'admin');
+      if (auth && auth.valid) {
+        resetAdminFailure(clientIp);
+        return { authorized: true, username: auth.username, role: auth.role, permissions: ROLE_PERMISSIONS[auth.role] };
+      }
     }
 
     // 2. Bearer token in 'Authorization: Bearer <...>'
-    if (!authorized && authHeader.startsWith('Bearer ')) {
+    if (authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7).trim();
-      if (isSecretValid(token)) {
-        authorized = true;
-      } else if (verifyAdminSessionToken(token)) {
-        authorized = true;
+      const auth = validateRoleCredentials(token, 'admin');
+      if (auth && auth.valid) {
+        resetAdminFailure(clientIp);
+        return { authorized: true, username: auth.username, role: auth.role, permissions: ROLE_PERMISSIONS[auth.role] };
+      }
+      const sessionData = parseAdminSessionToken(token);
+      if (sessionData) {
+        resetAdminFailure(clientIp);
+        return { authorized: true, username: sessionData.username, role: sessionData.role, permissions: sessionData.permissions };
       }
     }
 
-    if (authorized) {
-      resetAdminFailure(clientIp);
-      return true;
-    } else {
-      if (headerKey || authHeader) {
-        recordAdminFailure(clientIp);
-      }
-      return false;
+    if (headerKey || authHeader) {
+      recordAdminFailure(clientIp);
     }
+    return { authorized: false, username: '', role: 'Auditor', permissions: [] };
+  };
+
+  const isAuthorizedAdmin = (): boolean => {
+    return getAuthorizedAdminSession().authorized;
   };
 
   const sendAdminUnauthorized = () => {
@@ -623,6 +735,24 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       error: 'Unauthorized',
       message: 'Yêu cầu không hợp lệ. Vui lòng cung cấp header x-admin-key hoặc Authorization: Bearer <token> chính xác.'
     });
+  };
+
+  const requireAdminRole = (allowedRoles: AdminRole[]): { ok: boolean; session?: ReturnType<typeof getAuthorizedAdminSession> } => {
+    const session = getAuthorizedAdminSession();
+    if (!session.authorized) {
+      sendAdminUnauthorized();
+      return { ok: false };
+    }
+    if (!allowedRoles.includes(session.role)) {
+      sendJson(403, {
+        error: 'Forbidden',
+        message: `Tài khoản vai trò [${session.role}] không có quyền thực hiện hành động này. Yêu cầu quyền [${allowedRoles.join(' hoặc ')}]!`,
+        requiredRoles: allowedRoles,
+        currentRole: session.role
+      });
+      return { ok: false };
+    }
+    return { ok: true, session };
   };
 
   try {
@@ -694,43 +824,48 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       const body = await getBody(16384);
       const secret = (body.secret || body.password || body.adminKey || body.key || headerKey || bearerKey || '').trim();
       const username = (body.username || 'admin').trim();
+      const requestedRole = (body.role || '').trim();
 
-      if (!isSecretValid(secret)) {
+      const auth = validateRoleCredentials(secret, username, requestedRole);
+      if (!auth || !auth.valid) {
         recordAdminFailure(clientIp);
         return sendJson(401, {
           error: 'Unauthorized',
-          message: 'Mã Quản trị viên hoặc mật khẩu không chính xác!'
+          message: 'Mã Quản trị viên, tài khoản hoặc mật khẩu không chính xác!'
         });
       }
 
       resetAdminFailure(clientIp);
-      const token = createAdminSessionToken(AUTH_TOKEN_TTL_SECONDS);
+      const token = createAdminSessionToken(auth.role, auth.username, AUTH_TOKEN_TTL_SECONDS);
       return sendJson(200, {
         success: true,
         token: token,
         expiresIn: AUTH_TOKEN_TTL_SECONDS,
         user: {
-          username: username || 'admin',
-          role: 'SuperAdmin',
+          username: auth.username,
+          role: auth.role,
+          permissions: ROLE_PERMISSIONS[auth.role],
           loginAt: new Date().toISOString()
         },
-        message: 'Đăng nhập Quản trị viên thành công!'
+        message: `Đăng nhập Quản trị viên thành công (Vai trò: ${auth.role})!`
       });
     }
 
     // ── 0.01 ADMIN SESSION VERIFY (Ping Auth Check) ────────────
     if (pathname === '/api/admin/verify-session' && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const session = getAuthorizedAdminSession();
+      if (!session.authorized) return sendAdminUnauthorized();
       return sendJson(200, {
         valid: true,
         success: true,
         authenticated: true,
-        username: 'admin',
+        username: session.username,
         user: {
-          username: 'admin',
-          role: 'SuperAdmin'
+          username: session.username,
+          role: session.role,
+          permissions: session.permissions
         },
-        message: 'Phiên quản trị viên hợp lệ.'
+        message: `Phiên quản trị viên hợp lệ (Vai trò: ${session.role}).`
       });
     }
 
@@ -744,7 +879,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 0.1 ADMIN: ACTIVATION AUDIT LOGS ───────────────────────
     if ((pathname === '/api/admin/licenses/logs' || pathname === '/api/admin/logs') && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin', 'Support', 'Auditor']);
+      if (!auth.ok) return;
 
       const searchKey = ((query.key as string) || '').trim();
       const limit = parseInt(query.limit as string) || 50;
@@ -1002,7 +1138,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 4. ADMIN DASHBOARD STATS ───────────────────────────────
     if (pathname === '/api/admin/stats' && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin', 'Support', 'Auditor']);
+      if (!auth.ok) return;
 
       if (useNeon) {
         const stats = await neonDb.getStats();
@@ -1032,7 +1169,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 5. ADMIN LIST LICENSES ─────────────────────────────────
     if (pathname === '/api/admin/licenses' && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin', 'Support', 'Auditor']);
+      if (!auth.ok) return;
 
       const q = ((query.search as string) || '').trim().slice(0, 100);
       let status = ((query.status as string) || 'ALL').toUpperCase();
@@ -1070,7 +1208,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 6. ADMIN CREATE KEY / BULK GENERATE ────────────────────
     if (pathname === '/api/admin/licenses/create' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin', 'Support']);
+      if (!auth.ok) return;
 
       const body = await getBody(65536);
       let plan = (body.plan || 'LIFETIME').toUpperCase();
@@ -1126,7 +1265,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 7. ADMIN RESET HWID ────────────────────────────────────
     if (pathname === '/api/admin/licenses/reset-hwid' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin', 'Support']);
+      if (!auth.ok) return;
 
       const body = await getBody(65536);
       const key = (body.key || '').trim().toUpperCase();
@@ -1145,7 +1285,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 8. ADMIN TOGGLE STATUS ─────────────────────────────────
     if (pathname === '/api/admin/licenses/toggle-status' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin', 'Support']);
+      if (!auth.ok) return;
 
       const body = await getBody(65536);
       const key = (body.key || '').trim().toUpperCase();
@@ -1170,7 +1311,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 9. ADMIN EXTEND LICENSE ────────────────────────────────
     if (pathname === '/api/admin/licenses/extend' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin', 'Support']);
+      if (!auth.ok) return;
 
       const body = await getBody(65536);
       const key = (body.key || '').trim().toUpperCase();
@@ -1213,7 +1355,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 10. ADMIN DELETE LICENSE ───────────────────────────────
     if (pathname === '/api/admin/licenses/delete' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin']);
+      if (!auth.ok) return;
 
       const body = await getBody(65536);
       const key = (body.key || '').trim().toUpperCase();
@@ -1232,10 +1375,12 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
     // ── 10.1 RESTFUL LICENSE RESOURCE: PUT & DELETE /api/admin/licenses/:key ──
     const pathAction = pathname.replace('/api/admin/licenses/', '');
     if (pathname.startsWith('/api/admin/licenses/') && pathAction && !['create', 'reset-hwid', 'toggle-status', 'extend', 'delete', 'logs'].includes(pathAction)) {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
       const rawParamKey = decodeURIComponent(pathAction).trim().toUpperCase();
 
       if (req.method === 'DELETE') {
+        const auth = requireAdminRole(['SuperAdmin']);
+        if (!auth.ok) return;
+
         if (useNeon) {
           await neonDb.deleteLicense(rawParamKey);
         } else {
@@ -1247,6 +1392,9 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
       }
 
       if (req.method === 'PUT') {
+        const auth = requireAdminRole(['SuperAdmin', 'Support']);
+        if (!auth.ok) return;
+
         const body = await getBody(65536);
         const updates: Partial<License> = {};
 
@@ -1295,14 +1443,18 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 11. ADMIN GET / UPDATE VERSION CONFIG ──────────────────
     if (pathname === '/api/admin/version') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
-
       if (req.method === 'GET') {
+        const auth = requireAdminRole(['SuperAdmin', 'Support', 'Auditor']);
+        if (!auth.ok) return;
+
         const ver = useNeon ? await neonDb.getVersionConfig() : await getFallbackVersion();
         return sendJson(200, ver || {});
       }
 
       if (req.method === 'POST') {
+        const auth = requireAdminRole(['SuperAdmin']);
+        if (!auth.ok) return;
+
         const body = await getBody(131072);
         const updateData: Partial<VersionConfig> = {
           version: body.version,
@@ -1326,7 +1478,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 12. ADMIN BACKUP DATABASE ──────────────────────────────
     if (pathname === '/api/admin/backup' && req.method === 'GET') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin']);
+      if (!auth.ok) return;
 
       const licenses = useNeon ? await neonDb.getLicenses() : await getFallbackLicenses();
       const version = useNeon ? await neonDb.getVersionConfig() : await getFallbackVersion();
@@ -1341,7 +1494,8 @@ export default async function handler(req: http.IncomingMessage, res: http.Serve
 
     // ── 13. ADMIN RESTORE DATABASE ─────────────────────────────
     if (pathname === '/api/admin/restore' && req.method === 'POST') {
-      if (!isAuthorizedAdmin()) return sendAdminUnauthorized();
+      const auth = requireAdminRole(['SuperAdmin']);
+      if (!auth.ok) return;
 
       const body = await getBody(5242880);
 

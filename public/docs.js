@@ -29,6 +29,60 @@ document.addEventListener('DOMContentLoaded', () => {
   const healthLoading = document.getElementById('healthLoading');
   const healthContent = document.getElementById('healthContent');
 
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  const themeToggleIcon = document.getElementById('themeToggleIcon');
+  const btnMobileNav = document.getElementById('btnMobileNav');
+  const mobileDrawerOverlay = document.getElementById('mobileDrawerOverlay');
+  const mobileDrawerPane = document.getElementById('mobileDrawerPane');
+  const btnCloseMobileDrawer = document.getElementById('btnCloseMobileDrawer');
+  const navAdminRoleBadge = document.getElementById('navAdminRoleBadge');
+
+  // ── THEME CONTROLLER ───────────────────────────────────────
+  function initTheme() {
+    const saved = localStorage.getItem('ltv_theme') || 'dark';
+    applyTheme(saved);
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ltv_theme', theme);
+    if (themeToggleIcon) {
+      if (theme === 'light') {
+        themeToggleIcon.className = 'fa-solid fa-sun';
+        themeToggleIcon.style.color = '#f59e0b';
+      } else {
+        themeToggleIcon.className = 'fa-solid fa-moon';
+        themeToggleIcon.style.color = '';
+      }
+    }
+  }
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      showToast(`Đã chuyển sang giao diện ${next === 'light' ? 'Sáng (Light)' : 'Tối (Dark)'}`, 'info', 2000);
+    });
+  }
+
+  // ── MOBILE DRAWER ──────────────────────────────────────────
+  function toggleMobileDrawer(open) {
+    if (mobileDrawerOverlay && mobileDrawerPane) {
+      if (open) {
+        mobileDrawerOverlay.classList.add('active');
+        mobileDrawerPane.classList.add('active');
+      } else {
+        mobileDrawerOverlay.classList.remove('active');
+        mobileDrawerPane.classList.remove('active');
+      }
+    }
+  }
+
+  if (btnMobileNav) btnMobileNav.addEventListener('click', () => toggleMobileDrawer(true));
+  if (btnCloseMobileDrawer) btnCloseMobileDrawer.addEventListener('click', () => toggleMobileDrawer(false));
+  if (mobileDrawerOverlay) mobileDrawerOverlay.addEventListener('click', () => toggleMobileDrawer(false));
+
   // ── TOAST NOTIFICATIONS ────────────────────────────────────
   function showToast(message, type = 'info', duration = 2800) {
     if (!toastContainer) return;

@@ -178,7 +178,7 @@
           </div>
           <div class="admin-pill-info">
             <span class="admin-pill-name" id="navAdminName">Admin</span>
-            <span class="admin-pill-badge">Online</span>
+            <span class="role-badge role-badge-superadmin" id="navAdminRoleBadge" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">SuperAdmin</span>
           </div>
           <button class="btn-pill-logout" id="btnNavLogout" title="Đăng xuất quản trị viên">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -189,6 +189,17 @@
           <span class="status-indicator-dot"></span>
           <span id="healthPillText">API Online</span>
         </div>
+
+        <!-- Theme Toggle -->
+        <button class="btn-theme-toggle" id="btnThemeToggle" title="Chuyển chế độ Sáng / Tối">
+          <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
+        </button>
+
+        <!-- Mobile Drawer Hamburger -->
+        <button class="btn-mobile-nav" id="btnMobileNav" title="Mở danh mục điều hướng">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
         <a href="/#download" class="btn btn-sm btn-glow" id="navDownloadBtn">
           <i class="fa-solid fa-download"></i> Tải Cho Windows
         </a>
@@ -274,6 +285,7 @@
           <ul class="docs-nav-list">
             <li><a href="#overview" class="docs-nav-link active"><i class="fa-solid fa-circle-nodes"></i> Tổng Quan &amp; Base URL</a></li>
             <li><a href="#security" class="docs-nav-link"><i class="fa-solid fa-shield-halved"></i> Bảo Mật HMAC &amp; Anti-Replay</a></li>
+            <li><a href="#rbac" class="docs-nav-link"><i class="fa-solid fa-users-gear"></i> Phân Quyền Quản Trị (RBAC)</a></li>
             <li><a href="#version-api" class="docs-nav-link"><i class="fa-solid fa-cloud-arrow-down"></i> 1. Kiểm Tra Phiên Bản</a></li>
             <li><a href="#verify-api" class="docs-nav-link"><i class="fa-solid fa-key"></i> 2. Xác Thực HWID</a></li>
             <li><a href="#lookup-api" class="docs-nav-link"><i class="fa-solid fa-magnifying-glass"></i> 3. Tra Cứu Công Khai</a></li>
@@ -288,7 +300,7 @@
           <section class="docs-section-card" id="overview">
             <h2><i class="fa-solid fa-network-wired text-cyan"></i> Tổng Quan Kiến Trúc API</h2>
             <p>
-              Hệ thống <strong>LTVStudio Cloud Web API</strong> cung cấp các dịch vụ đám mây thời gian thực cho ứng dụng máy tính <em>PodStudio Transform</em>, các công cụ biên dịch video và cổng quản trị bản quyền. Toàn bộ API được thiết kế theo chuẩn RESTful, trả về định dạng JSON UTF-8 với thời gian phản hồi dưới 50ms.
+              Hệ thống <strong>LTVStudio Cloud Web API</strong> cung cấp các dịch vụ đám mây thời gian thực cho ứng dụng máy tính <em>LTVStudio</em>, các công cụ biên dịch video và cổng quản trị bản quyền. Toàn bộ API được thiết kế theo chuẩn RESTful, trả về định dạng JSON UTF-8 với thời gian phản hồi dưới 50ms.
             </p>
             
             <h4 style="color: #f1f5f9; margin-bottom: 0.6rem; font-size: 0.95rem;">Máy Chủ Production &amp; Development:</h4>
@@ -323,6 +335,140 @@
                 <li><strong>signature</strong>: Chữ ký HMAC-SHA256 tính từ chuỗi <code style="color: #38bdf8;">${licenseKey}:${machineId}:${timestamp}:${nonce}</code>.</li>
                 <li><strong>validateHwid</strong>: Chuỗi HWID máy tính hợp lệ (tối thiểu 6 ký tự, không chấp nhận chuỗi rỗng hoặc UNKNOWN).</li>
               </ul>
+            </div>
+          </section>
+
+          <!-- 3. RBAC PERMISSIONS MATRIX -->
+          <section class="docs-section-card" id="rbac">
+            <h2><i class="fa-solid fa-users-gear text-cyan"></i> Hệ Thống Phân Quyền Quản Trị (RBAC Matrix)</h2>
+            <p>
+              Để bảo vệ an toàn tuyệt đối cho cơ sở dữ liệu và phân tách trách nhiệm vận hành theo chuẩn quốc tế, Cổng Quản trị LTVStudio áp dụng mô hình <strong>Role-Based Access Control (RBAC) 3 Vai Trò</strong> nghiêm ngặt:
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+              <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 10px; padding: 1.2rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem;">
+                  <span class="role-badge role-badge-superadmin">SuperAdmin</span>
+                  <strong style="color: #38bdf8;">Toàn Quyền</strong>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                  Quản trị cấp cao nhất: Toàn quyền tạo key, xóa key vĩnh viễn, phát hành OTA updates, cấu hình phiên bản, sao lưu &amp; khôi phục CSDL JSON.
+                </p>
+              </div>
+
+              <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 1.2rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem;">
+                  <span class="role-badge role-badge-support">Support / Sales</span>
+                  <strong style="color: #34d399;">Cấp Phép &amp; Hỗ Trợ</strong>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                  Bộ phận CSKH &amp; Kinh Doanh: Được phép tạo key mới, mở khóa HWID khi khách đổi máy tính, gia hạn thời gian, tạo tin nhắn bàn giao. <em>Bị chặn xóa key và sửa cấu hình OTA.</em>
+                </p>
+              </div>
+
+              <div style="background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 10px; padding: 1.2rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem;">
+                  <span class="role-badge role-badge-auditor">Auditor</span>
+                  <strong style="color: #cbd5e1;">Kiểm Toán &amp; Kế Toán</strong>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                  Quyền Chỉ Đọc (Read-only): Xem biểu đồ KPIs, xem danh sách bản quyền, xuất file Excel CSV UTF-8 BOM, kiểm tra audit logs. <em>Bị chặn mọi thao tác sửa/tạo/xóa (403 Forbidden).</em>
+                </p>
+              </div>
+            </div>
+
+            <h4 style="color: #f1f5f9; margin-bottom: 0.75rem; font-size: 0.95rem;">Ma Trận Quyền Hạn Endpoints API:</h4>
+            <div style="overflow-x: auto;">
+              <table class="status-table">
+                <thead>
+                  <tr>
+                    <th>Chức Năng API</th>
+                    <th>Phương Thức &amp; Endpoint</th>
+                    <th style="text-align: center;">SuperAdmin</th>
+                    <th style="text-align: center;">Support</th>
+                    <th style="text-align: center;">Auditor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Thống Kê KPIs Hệ Thống</td>
+                    <td><code>GET /api/admin/stats</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                  </tr>
+                  <tr>
+                    <td>Danh Sách &amp; Lọc Bản Quyền</td>
+                    <td><code>GET /api/admin/licenses</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                  </tr>
+                  <tr>
+                    <td>Xem Lịch Sử Audit Logs</td>
+                    <td><code>GET /api/admin/logs</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                  </tr>
+                  <tr>
+                    <td>Phát Hành Mã Key Mới</td>
+                    <td><code>POST /api/admin/licenses/create</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                  </tr>
+                  <tr>
+                    <td>Mở Khóa Thiết Bị (HWID Reset)</td>
+                    <td><code>POST /api/admin/licenses/reset-hwid</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                  </tr>
+                  <tr>
+                    <td>Khóa / Mở Khóa Bản Quyền</td>
+                    <td><code>POST /api/admin/licenses/toggle-status</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                  </tr>
+                  <tr>
+                    <td>Gia Hạn Bản Quyền</td>
+                    <td><code>POST /api/admin/licenses/extend</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                  </tr>
+                  <tr>
+                    <td>Xóa Vĩnh Viễn Bản Quyền</td>
+                    <td><code>DELETE /api/admin/licenses/:key</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                  </tr>
+                  <tr>
+                    <td>Cấu Hình Phiên Bản OTA</td>
+                    <td><code>POST /api/admin/version</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                  </tr>
+                  <tr>
+                    <td>Sao Lưu CSDL JSON</td>
+                    <td><code>GET /api/admin/backup</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                  </tr>
+                  <tr>
+                    <td>Khôi Phục CSDL Từ File JSON</td>
+                    <td><code>POST /api/admin/restore</code></td>
+                    <td style="text-align: center; color: #10b981;">✓ Cho phép</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                    <td style="text-align: center; color: #f43f5e;">✗ 403 Forbidden</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </section>
 
@@ -389,7 +535,7 @@
   "features": ["FULL_STUDIO_ACCESS", "OFFLINE_DUBBING", "AUTO_UPDATES"],
   "token": "hmac_signature_token_here",
   "timestamp": 1792051200000,
-  "message": "Xác thực bản quyền thành công! Chào mừng bạn đến với PodStudio Transform Pro."
+  "message": "Xác thực bản quyền thành công! Chào mừng bạn đến với LTVStudio Pro."
 }</code></pre>
             </div>
           </section>
@@ -563,6 +709,37 @@
       </div>
     </div>
   </footer>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-drawer-overlay" id="mobileDrawerOverlay"></div>
+  <div class="mobile-drawer-pane" id="mobileDrawerPane">
+    <div class="mobile-drawer-header">
+      <div class="brand">
+        <div class="logo-box">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">LTVStudio</span>
+          <span class="brand-tag">Cloud Portal</span>
+        </div>
+      </div>
+      <button class="modal-close" id="btnCloseMobileDrawer">&times;</button>
+    </div>
+    <div class="mobile-drawer-links">
+      <a href="/" class="mobile-drawer-link">
+        <i class="fa-solid fa-compass"></i> Trang Chủ &amp; Tải Về
+      </a>
+      <a href="/lookup" class="mobile-drawer-link">
+        <i class="fa-solid fa-shield-halved"></i> Tra Cứu Bản Quyền
+      </a>
+      <a href="/docs" class="mobile-drawer-link active">
+        <i class="fa-solid fa-book-bookmark"></i> Tài Liệu API
+      </a>
+      <a href="/admin" class="mobile-drawer-link">
+        <i class="fa-solid fa-screwdriver-wrench"></i> Quản Trị Hệ Thống
+      </a>
+    </div>
+  </div>
 
   <div id="toastContainer" class="toast-container"></div>
 

@@ -20,6 +20,159 @@ document.addEventListener('DOMContentLoaded', () => {
   const healthContent = document.getElementById('healthContent');
   const toastContainer = document.getElementById('toastContainer');
 
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  const themeToggleIcon = document.getElementById('themeToggleIcon');
+  const btnMobileNav = document.getElementById('btnMobileNav');
+  const mobileDrawerOverlay = document.getElementById('mobileDrawerOverlay');
+  const mobileDrawerPane = document.getElementById('mobileDrawerPane');
+  const btnCloseMobileDrawer = document.getElementById('btnCloseMobileDrawer');
+
+  // Admin Modal Elements (Quick Access & Test Compatibility)
+  const adminAuthModal = document.getElementById('adminAuthModal');
+  const btnCloseAuthModal = document.getElementById('btnCloseAuthModal');
+  const btnCancelAdminAuth = document.getElementById('btnCancelAdminAuth');
+  const adminUsernameInput = document.getElementById('adminUsernameInput');
+  const adminSecretInput = document.getElementById('adminSecretInput');
+  const btnTogglePasswordEye = document.getElementById('btnTogglePasswordEye');
+  const eyeIcon = document.getElementById('eyeIcon');
+  const checkRememberAdmin = document.getElementById('checkRememberAdmin');
+  const adminLoginError = document.getElementById('adminLoginError');
+  const adminLoginErrorText = document.getElementById('adminLoginErrorText');
+  const btnSubmitAdminAuth = document.getElementById('btnSubmitAdminAuth');
+  const btnAdminLogout = document.getElementById('btnAdminLogout');
+  const navAdminRoleBadge = document.getElementById('navAdminRoleBadge');
+  const mobileNavDocsLink = document.getElementById('mobileNavDocsLink');
+
+  // ── THEME CONTROLLER ───────────────────────────────────────
+  function initTheme() {
+    const saved = localStorage.getItem('ltv_theme') || 'dark';
+    applyTheme(saved);
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ltv_theme', theme);
+    if (themeToggleIcon) {
+      if (theme === 'light') {
+        themeToggleIcon.className = 'fa-solid fa-sun';
+        themeToggleIcon.style.color = '#f59e0b';
+      } else {
+        themeToggleIcon.className = 'fa-solid fa-moon';
+        themeToggleIcon.style.color = '';
+      }
+    }
+  }
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      showToast(`Đã chuyển sang giao diện ${next === 'light' ? 'Sáng (Light)' : 'Tối (Dark)'}`, 'info', 2000);
+    });
+  }
+
+  // ── MOBILE DRAWER ──────────────────────────────────────────
+  function toggleMobileDrawer(open) {
+    if (mobileDrawerOverlay && mobileDrawerPane) {
+      if (open) {
+        mobileDrawerOverlay.classList.add('active');
+        mobileDrawerPane.classList.add('active');
+      } else {
+        mobileDrawerOverlay.classList.remove('active');
+        mobileDrawerPane.classList.remove('active');
+      }
+    }
+  }
+
+  if (btnMobileNav) btnMobileNav.addEventListener('click', () => toggleMobileDrawer(true));
+  if (btnCloseMobileDrawer) btnCloseMobileDrawer.addEventListener('click', () => toggleMobileDrawer(false));
+  if (mobileDrawerOverlay) mobileDrawerOverlay.addEventListener('click', () => toggleMobileDrawer(false));
+
+  // ── ADMIN LOGIN MODAL ──────────────────────────────────────
+  function openAdminAuthModal() {
+    if (adminLoginError) adminLoginError.style.display = 'none';
+    if (adminAuthModal) adminAuthModal.classList.add('active');
+    setTimeout(() => {
+      if (adminSecretInput) adminSecretInput.focus();
+    }, 150);
+  }
+
+  function closeAdminAuthModal() {
+    if (adminAuthModal) adminAuthModal.classList.remove('active');
+  }
+
+  if (btnCloseAuthModal) btnCloseAuthModal.addEventListener('click', closeAdminAuthModal);
+  if (btnCancelAdminAuth) btnCancelAdminAuth.addEventListener('click', closeAdminAuthModal);
+
+  if (btnTogglePasswordEye && adminSecretInput && eyeIcon) {
+    btnTogglePasswordEye.addEventListener('click', () => {
+      const isPwd = adminSecretInput.type === 'password';
+      adminSecretInput.type = isPwd ? 'text' : 'password';
+      eyeIcon.className = isPwd ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+    });
+  }
+
+  if (btnSubmitAdminAuth) {
+    btnSubmitAdminAuth.addEventListener('click', async () => {
+      const username = (adminUsernameInput ? adminUsernameInput.value.trim() : 'admin') || 'admin';
+      const secret = (adminSecretInput ? adminSecretInput.value.trim() : '');
+      const remember = checkRememberAdmin ? checkRememberAdmin.checked : true;
+
+      if (!secret) {
+        if (adminLoginError && adminLoginErrorText) {
+          adminLoginErrorText.textContent = 'Vui lòng nhập mật khẩu Quản trị viên!';
+          adminLoginError.style.display = 'block';
+        }
+        return;
+      }
+
+      btnSubmitAdminAuth.disabled = true;
+      btnSubmitAdminAuth.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xác thực...';
+      if (adminLoginError) adminLoginError.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, secret, password: secret })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          const storage = remember ? localStorage : sessionStorage;
+          storage.setItem('ltv_admin_session_token', data.token);
+          storage.setItem('ltv_admin_role', data.user?.role || 'SuperAdmin');
+          storage.setItem('ltv_admin_permissions', JSON.stringify(data.user?.permissions || []));
+          showToast(`✓ Đăng nhập thành công với vai trò ${data.user?.role || 'Admin'}!`, 'success');
+          closeAdminAuthModal();
+          setTimeout(() => {
+            window.location.href = '/admin';
+          }, 800);
+        } else {
+          if (adminLoginError && adminLoginErrorText) {
+            adminLoginErrorText.textContent = data.message || 'Mật khẩu quản trị không chính xác!';
+            adminLoginError.style.display = 'block';
+          }
+        }
+      } catch (e) {
+        if (adminLoginError && adminLoginErrorText) {
+          adminLoginErrorText.textContent = 'Lỗi kết nối: ' + e.message;
+          adminLoginError.style.display = 'block';
+        }
+      } finally {
+        btnSubmitAdminAuth.disabled = false;
+        btnSubmitAdminAuth.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập';
+      }
+    });
+  }
+
+  if (adminSecretInput) {
+    adminSecretInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') btnSubmitAdminAuth.click();
+    });
+  }
+
   // ── TOAST NOTIFICATIONS ────────────────────────────────────
   function showToast(message, type = 'info', duration = 3000) {
     if (!toastContainer) return;
@@ -128,7 +281,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Load initial version data
+  // Load initial version data & theme
+  initTheme();
   loadPublicVersion();
 
   // ── ADMIN NAVBAR REVEAL (DOCS ACCESS CONTROL) ──────────────
@@ -137,10 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const navDocsLink = document.getElementById('navDocsLink');
     const navAdminProfilePill = document.getElementById('navAdminProfilePill');
     const navAdminName = document.getElementById('navAdminName');
+    const navAdminRoleBadge = document.getElementById('navAdminRoleBadge');
     const btnNavLogout = document.getElementById('btnNavLogout');
+    const btnAdminLogout = document.getElementById('btnAdminLogout');
+    const mobileNavDocsLink = document.getElementById('mobileNavDocsLink');
 
     if (!token) {
       if (navDocsLink) navDocsLink.style.display = 'none';
+      if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'none';
       if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
       return;
     }
@@ -150,39 +308,53 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data.valid) {
+      if (data.valid || data.authenticated) {
+        const u = data.user || {};
+        const role = u.role || 'SuperAdmin';
         if (navDocsLink) navDocsLink.style.display = 'inline-flex';
+        if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'flex';
         document.querySelectorAll('.footer-docs-link').forEach(el => el.style.display = 'inline');
         if (navAdminProfilePill) {
           navAdminProfilePill.style.display = 'inline-flex';
-          if (navAdminName) navAdminName.textContent = data.username || 'Admin';
+          if (navAdminName) navAdminName.textContent = u.username || data.username || 'Admin';
+          if (navAdminRoleBadge) {
+            navAdminRoleBadge.textContent = role;
+            navAdminRoleBadge.className = 'role-badge ' + (
+              role === 'SuperAdmin' ? 'role-badge-superadmin' :
+              role === 'Support' ? 'role-badge-support' : 'role-badge-auditor'
+            );
+          }
         }
       } else {
         localStorage.removeItem('ltv_admin_session_token');
         if (navDocsLink) navDocsLink.style.display = 'none';
+        if (mobileNavDocsLink) mobileNavDocsLink.style.display = 'none';
         if (navAdminProfilePill) navAdminProfilePill.style.display = 'none';
       }
     } catch (e) {
       // Offline fallback: keep quiet
     }
 
-    if (btnNavLogout) {
-      btnNavLogout.onclick = async () => {
-        const curToken = localStorage.getItem('ltv_admin_session_token');
-        if (curToken) {
-          try {
-            await fetch('/api/admin/logout', {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${curToken}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({})
-            });
-          } catch (e) {}
-        }
-        localStorage.removeItem('ltv_admin_session_token');
-        localStorage.removeItem('ltv_admin_secret');
-        window.location.reload();
-      };
-    }
+    const doLogout = async () => {
+      const curToken = localStorage.getItem('ltv_admin_session_token');
+      if (curToken) {
+        try {
+          await fetch('/api/admin/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${curToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+          });
+        } catch (e) {}
+      }
+      localStorage.removeItem('ltv_admin_session_token');
+      localStorage.removeItem('ltv_admin_role');
+      localStorage.removeItem('ltv_admin_permissions');
+      localStorage.removeItem('ltv_admin_secret');
+      window.location.reload();
+    };
+
+    if (btnNavLogout) btnNavLogout.onclick = doLogout;
+    if (btnAdminLogout) btnAdminLogout.onclick = doLogout;
   }
 
   checkAdminSessionPortal();
