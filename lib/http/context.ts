@@ -71,7 +71,7 @@ export class HttpContext {
       ip = xForwardedFor[0].trim();
     }
     if (!ip) {
-      ip = (req.headers['x-real-ip'] as string) || req.socket.remoteAddress || '127.0.0.1';
+      ip = (req.headers['x-real-ip'] as string) || req.socket?.remoteAddress || '127.0.0.1';
     }
     this.clientIp = ip.replace(/^::ffff:/, '');
 

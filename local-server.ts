@@ -9,8 +9,9 @@ import path from 'path';
 import apiHandler from './api/index';
 
 const PORT = Number(process.env.PORT) || 8080;
-const DIST_DIR = path.join(__dirname, 'dist');
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const ROOT_DIR = process.cwd();
+const DIST_DIR = path.join(ROOT_DIR, 'dist');
+const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',

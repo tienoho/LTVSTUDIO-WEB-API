@@ -4,4 +4,5 @@
  */
 import handler from './index';
 
+(handler as any).default = handler;
 export default handler;
