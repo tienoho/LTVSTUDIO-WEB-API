@@ -5,6 +5,7 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api?apiPath=$1" },
     { "source": "/((?!api/|api$).*)", "destination": "/index.html" }
   ],
   "headers": [

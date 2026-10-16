@@ -23,10 +23,14 @@ export {
 } from '../lib/security/auth';
 
 // Non-blocking asynchronous Database Schema initialization (Neon Postgres)
-if (neonDb.isNeonConfigured()) {
-  neonDb.initDb(DEFAULT_LICENSES, DEFAULT_VERSION, DEFAULT_USERS).catch(err => {
-    console.error('[Neon Postgres] Auto-init background error:', err.message);
-  });
+try {
+  if (neonDb.isNeonConfigured()) {
+    neonDb.initDb(DEFAULT_LICENSES, DEFAULT_VERSION, DEFAULT_USERS).catch(err => {
+      console.error('[Neon Postgres] Auto-init background error:', err?.message || err);
+    });
+  }
+} catch (initErr: any) {
+  console.error('[Neon Postgres] Auto-init synchronous error:', initErr?.message || initErr);
 }
 
 /**
