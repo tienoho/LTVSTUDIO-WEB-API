@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "changelog": "• Bản phát hành chính thức LTVStudio v1.0.0\n• Tích hợp mô hình AI Expressive TTS cao cấp đa cảm xúc\n• Tối ưu hệ thống bóc tách phụ đề và dịch thuật siêu tốc\n• Hệ thống kiểm soát bản quyền HWID đám mây bảo mật cao",
+  "version": "2.1.0",
+  "changelog": "• LTVStudio v2.1.0 Enterprise Studio Release\n• 100% Hệ thống Icon chuẩn doanh nghiệp hiện đại\n• Cơ chế bảo vệ phiên làm việc: Hộp thoại xác nhận trước khi thoát\n• Nâng cấp giao diện Dark Obsidian Glassmorphism\n• Tăng tốc độ render và cải thiện tính ổn định",
   "download_url": "https://github.com/ltvstudio/releases/releases/download/v1.0.0/LTVStudio_Setup.exe",
   "force_update": false,
-  "updated_at": "2026-10-16T12:00:00.000Z"
+  "updated_at": "2026-10-16T23:55:00.000Z"
 }
