@@ -39,8 +39,8 @@ export class LicenseController {
     }
 
     const body = await ctx.getBody(65536);
-    const rawLicenseKey = (body.licenseKey || body.key || '').trim().toUpperCase().slice(0, 64);
-    const rawMachineId = (body.machineId || body.hwid || '').trim().slice(0, 128);
+    const rawLicenseKey = (body.licenseKey || body.key || body.license_key || '').trim().toUpperCase().slice(0, 64);
+    const rawMachineId = (body.machineId || body.hwid || body.machine_id || '').trim().slice(0, 128);
 
     // Validate presence of license key
     if (!rawLicenseKey) {
@@ -217,7 +217,11 @@ export class LicenseController {
 
   // ── 2. PUBLIC LICENSE LOOKUP ──────────────────────────────
   public static async lookupLicense(ctx: HttpContext): Promise<void> {
-    const searchKey = ((ctx.query.key as string) || '').trim().toUpperCase().slice(0, 64);
+    let searchKey = ((ctx.query.key as string) || '').trim().toUpperCase().slice(0, 64);
+    if (!searchKey && ctx.req.method === 'POST') {
+      const body = await ctx.getBody(16384);
+      searchKey = ((body.key || body.licenseKey || '') as string).trim().toUpperCase().slice(0, 64);
+    }
     if (!searchKey) {
       return ctx.sendJson(400, { error: 'Vui lòng cung cấp mã bản quyền cần tra cứu' });
     }

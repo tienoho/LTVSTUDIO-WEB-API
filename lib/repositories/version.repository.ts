@@ -20,8 +20,8 @@ export async function getFallbackVersion(): Promise<VersionConfig> {
 
   for (const p of pathsToTry) {
     try {
-      if (fs.existsSync(p)) {
-        const content = fs.readFileSync(p, 'utf8');
+      if (fs.existsSync(/*turbopackIgnore: true*/ p)) {
+        const content = fs.readFileSync(/*turbopackIgnore: true*/ p, 'utf8');
         const parsed = JSON.parse(content);
         if (parsed && parsed.version) {
           memoryVersion = parsed;

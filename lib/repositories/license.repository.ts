@@ -21,8 +21,8 @@ export async function getFallbackLicenses(): Promise<License[]> {
 
   for (const p of pathsToTry) {
     try {
-      if (fs.existsSync(p)) {
-        const content = fs.readFileSync(p, 'utf8');
+      if (fs.existsSync(/*turbopackIgnore: true*/ p)) {
+        const content = fs.readFileSync(/*turbopackIgnore: true*/ p, 'utf8');
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed) && parsed.length > 0) {
           memoryLicenses = parsed;

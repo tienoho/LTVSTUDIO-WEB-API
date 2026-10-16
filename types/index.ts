@@ -81,6 +81,14 @@ export interface AdminRolePermission {
   permissions: string[];
 }
 
+export interface AdminSession {
+  username: string;
+  role: AdminRole;
+  fullName?: string;
+  permissions?: string[];
+  loginAt?: string;
+}
+
 export interface AdminLoginRequest {
   username?: string;
   password?: string;

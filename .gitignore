@@ -11,6 +11,7 @@ web_modules/
 dist/
 build/
 out/
+.next/
 *.tsbuildinfo
 
 # ========================================================
@@ -76,3 +77,4 @@ $RECYCLE.BIN/
 *.njsproj
 *.sln
 *.sw?
+.next/
