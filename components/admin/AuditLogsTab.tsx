@@ -129,7 +129,7 @@ export const AuditLogsTab: React.FC = () => {
                     <td className="py-3.5 px-4 text-slate-400">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-500" />
-                        {new Date(log.createdAt).toLocaleString('vi-VN')}
+                        {log.createdAt && !isNaN(new Date(log.createdAt).getTime()) ? new Date(log.createdAt).toLocaleString('vi-VN') : (log.createdAt || '--')}
                       </div>
                     </td>
 

@@ -241,7 +241,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onOpenChangePass
                         {u.lastLoginAt ? (
                           <div className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-slate-500" />
-                            {new Date(u.lastLoginAt).toLocaleString('vi-VN')}
+                            {!isNaN(new Date(u.lastLoginAt).getTime()) ? new Date(u.lastLoginAt).toLocaleString('vi-VN') : String(u.lastLoginAt)}
                           </div>
                         ) : (
                           <span className="text-slate-500 italic">Chưa đăng nhập</span>

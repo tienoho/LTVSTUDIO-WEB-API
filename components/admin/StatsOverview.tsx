@@ -20,12 +20,18 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ stats, isLoading }
     );
   }
 
-  const activationRate = stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
+  const total = Number(stats?.total ?? (stats as any)?.totalLicenses ?? 0);
+  const active = Number(stats?.active ?? (stats as any)?.activeLicenses ?? 0);
+  const unactivated = Number(stats?.unactivated ?? (total >= active ? total - active : 0));
+  const revoked = Number(stats?.revoked ?? 0);
+  const lifetime = Number(stats?.lifetime ?? 0);
+
+  const activationRate = total > 0 ? Math.round((active / total) * 100) : 0;
 
   const statCards = [
     {
       title: 'Tổng Mã Bản Quyền',
-      value: stats.total,
+      value: total,
       subtext: 'Đã phát hành trên hệ thống',
       icon: Key,
       color: 'text-cyan-400',
@@ -35,7 +41,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ stats, isLoading }
     },
     {
       title: 'Đang Hoạt Động (HWID)',
-      value: stats.active,
+      value: active,
       subtext: `Tỷ lệ kích hoạt: ${activationRate}%`,
       icon: Laptop,
       color: 'text-emerald-400',
@@ -45,7 +51,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ stats, isLoading }
     },
     {
       title: 'Chưa Gắn Thiết Bị',
-      value: stats.unactivated,
+      value: unactivated,
       subtext: 'Sẵn sàng cấp cho khách',
       icon: Clock,
       color: 'text-amber-400',
@@ -55,7 +61,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ stats, isLoading }
     },
     {
       title: 'Bản Quyền Bị Khóa',
-      value: stats.revoked,
+      value: revoked,
       subtext: 'Vi phạm hoặc thu hồi',
       icon: Ban,
       color: 'text-rose-400',
@@ -65,8 +71,8 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ stats, isLoading }
     },
     {
       title: 'Gói Vĩnh Viễn (Lifetime)',
-      value: stats.lifetime,
-      subtext: `Phiên bản OTA: v${stats.currentVersion || '1.0.0'}`,
+      value: lifetime,
+      subtext: `Phiên bản OTA: v${stats?.currentVersion || '1.0.0'}`,
       icon: Award,
       color: 'text-purple-400',
       border: 'border-purple-500/20',
@@ -92,7 +98,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ stats, isLoading }
                 </div>
               </div>
               <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                {c.value.toLocaleString()}
+                {(c.value ?? 0).toLocaleString()}
               </div>
               <div className="mt-1 text-xs text-slate-400 truncate">
                 {c.subtext}
