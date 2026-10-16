@@ -6,7 +6,7 @@ import time
 import sys
 import os
 
-PROJ = r"D:\Project\LTVSTUDIO_WEB_API\web_api"
+PROJ = os.path.dirname(os.path.abspath(__file__))
 TSX_CLI = os.path.join(PROJ, "node_modules", "tsx", "dist", "cli.mjs")
 BASE_URL = "http://localhost:8080"
 

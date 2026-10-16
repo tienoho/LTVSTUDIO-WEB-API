@@ -5,7 +5,7 @@ import urllib.error
 import json
 import os
 
-PROJ = r"D:\Project\LTVSTUDIO_WEB_API\web_api"
+PROJ = os.path.dirname(os.path.abspath(__file__))
 TSX_CLI = os.path.join(PROJ, "node_modules", "tsx", "dist", "cli.mjs")
 ADMIN_SECRET = "ltvstudio_secret_admin_2026"
 

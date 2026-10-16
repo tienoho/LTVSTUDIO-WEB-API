@@ -33,22 +33,30 @@ export class HttpContext {
 
     // Vercel Serverless Function & Rewrite Compatibility
     const matchedPath = req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-original-url'];
-    if (typeof matchedPath === 'string' && matchedPath.startsWith('/api')) {
+    if (typeof matchedPath === 'string' && matchedPath.startsWith('/api') && !matchedPath.includes('[')) {
       path = matchedPath.split('?')[0];
-    } else {
+    }
+
+    // Handle dynamic Vercel serverless catch-all routing (e.g. /api/[...slug])
+    if (path === '/api/[...slug]' || path === '/api' || path === '/api/' || path.includes('[')) {
       const slug = q.slug || (req as any).query?.slug;
       const apiPath = q.apiPath || (req as any).query?.apiPath;
       if (slug) {
         const slugVal = Array.isArray(slug) ? slug.join('/') : slug;
-        if (slugVal && !path.includes(slugVal)) {
-          path = '/api/' + slugVal;
+        if (slugVal) {
+          path = slugVal.startsWith('/api') ? slugVal : ('/api/' + slugVal.replace(/^\//, ''));
         }
       } else if (apiPath) {
         const apiPathVal = Array.isArray(apiPath) ? apiPath.join('/') : apiPath;
-        if (apiPathVal && !path.includes(apiPathVal)) {
-          path = '/api/' + apiPathVal;
+        if (apiPathVal) {
+          path = apiPathVal.startsWith('/api') ? apiPathVal : ('/api/' + apiPathVal.replace(/^\//, ''));
         }
       }
+    }
+
+    // Normalize trailing slashes (except root /api)
+    if (path.length > 4 && path.endsWith('/')) {
+      path = path.replace(/\/+$/, '');
     }
 
     this.pathname = path;
