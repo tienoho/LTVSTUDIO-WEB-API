@@ -536,8 +536,8 @@
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
               <div class="endpoint-pill" style="justify-content: space-between;">
-                <div><span class="method-badge method-get">PRODUCTION</span> <span style="color:#38bdf8;">https://ltvstudio-web-api.vercel.app</span></div>
-                <button class="btn-copy-code" data-copy="https://ltvstudio-web-api.vercel.app" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+                <div><span class="method-badge method-get">PRODUCTION</span> <span style="color:#38bdf8;">https://ltv-tools.vercel.app</span></div>
+                <button class="btn-copy-code" data-copy="https://ltv-tools.vercel.app" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
               </div>
               <div class="endpoint-pill" style="justify-content: space-between;">
                 <div><span class="method-badge method-post">LOCAL VPS</span> <span style="color:#a78bfa;">http://localhost:8080</span></div>
@@ -554,8 +554,8 @@
               <div class="endpoint-pill"><span class="method-badge method-get">GET</span> <span>/api/transform/version</span></div>
               <p>Trả về phiên bản phần mềm mới nhất, URL tải bộ cài Windows Setup và nội dung nhật ký cập nhật.</p>
               <div class="code-preview-wrapper">
-                <pre><code>curl -s https://ltvstudio-web-api.vercel.app/api/transform/version</code></pre>
-                <button class="btn-copy-code" data-copy="curl -s https://ltvstudio-web-api.vercel.app/api/transform/version" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+                <pre><code>curl -s https://ltv-tools.vercel.app/api/transform/version</code></pre>
+                <button class="btn-copy-code" data-copy="curl -s https://ltv-tools.vercel.app/api/transform/version" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
               </div>
             </div>
 
@@ -565,10 +565,10 @@
               <div class="endpoint-pill"><span class="method-badge method-post">POST</span> <span>/api/auth/verify</span></div>
               <p>Client máy tính gửi mã bản quyền và mã máy (Machine ID / HWID) để mở khóa tính năng.</p>
               <div class="code-preview-wrapper">
-                <pre><code>curl -X POST https://ltvstudio-web-api.vercel.app/api/auth/verify \
+                <pre><code>curl -X POST https://ltv-tools.vercel.app/api/auth/verify \
   -H "Content-Type: application/json" \
   -d '{"licenseKey": "LTV-PRO-8888-9999-LIFETIME", "machineId": "WIN-UUID-4A7F-9B21"}'</code></pre>
-                <button class="btn-copy-code" data-copy="curl -X POST https://ltvstudio-web-api.vercel.app/api/auth/verify -H &quot;Content-Type: application/json&quot; -d '{\&quot;licenseKey\&quot;: \&quot;LTV-PRO-8888-9999-LIFETIME\&quot;, \&quot;machineId\&quot;: \&quot;WIN-UUID-4A7F-9B21\&quot;}'" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+                <button class="btn-copy-code" data-copy="curl -X POST https://ltv-tools.vercel.app/api/auth/verify -H &quot;Content-Type: application/json&quot; -d '{\&quot;licenseKey\&quot;: \&quot;LTV-PRO-8888-9999-LIFETIME\&quot;, \&quot;machineId\&quot;: \&quot;WIN-UUID-4A7F-9B21\&quot;}'" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
               </div>
             </div>
 
@@ -578,8 +578,8 @@
               <div class="endpoint-pill"><span class="method-badge method-get">GET</span> <span>/api/license/lookup?key=...</span></div>
               <p>Tra cứu thông tin gói cước, hạn dùng và mã phần cứng được che (Masked HWID) bảo mật quyền riêng tư.</p>
               <div class="code-preview-wrapper">
-                <pre><code>curl -s "https://ltvstudio-web-api.vercel.app/api/license/lookup?key=LTV-PRO-8888-9999-LIFETIME"</code></pre>
-                <button class="btn-copy-code" data-copy="curl -s &quot;https://ltvstudio-web-api.vercel.app/api/license/lookup?key=LTV-PRO-8888-9999-LIFETIME&quot;" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
+                <pre><code>curl -s "https://ltv-tools.vercel.app/api/license/lookup?key=LTV-PRO-8888-9999-LIFETIME"</code></pre>
+                <button class="btn-copy-code" data-copy="curl -s &quot;https://ltv-tools.vercel.app/api/license/lookup?key=LTV-PRO-8888-9999-LIFETIME&quot;" title="Sao chép"><i class="fa-regular fa-copy"></i></button>
               </div>
             </div>
 

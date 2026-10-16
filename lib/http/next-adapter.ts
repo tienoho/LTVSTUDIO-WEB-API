@@ -26,7 +26,7 @@ export class NextHttpContext {
 
   constructor(req: NextRequest, params?: { slug?: string[] }) {
     const headersObj: Record<string, string> = {};
-    req.headers.forEach((val, key) => {
+    req.headers.forEach((val: string, key: string) => {
       headersObj[key.toLowerCase()] = val;
     });
 

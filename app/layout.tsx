@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'LTVStudio™ License Hub',
     description: 'Hệ thống cấp phép bản quyền và xác thực thiết bị HWID bảo mật cao.',
-    url: 'https://ltvstudio-web-api.vercel.app',
+    url: 'https://ltv-tools.vercel.app',
     siteName: 'LTVStudio Ecosystem',
     locale: 'vi_VN',
     type: 'website',

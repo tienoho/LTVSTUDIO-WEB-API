@@ -1114,7 +1114,7 @@ Dịch vụ: Hệ Sinh Thái AI Dubbing & Tách Nhạc LTVStudio
 🛡️ Trạng thái: Sẵn sàng kích hoạt thiết bị (HWID)
 
 📥 TẢI PHẦN MỀM CHÍNH HÃNG:
-👉 https://ltvstudio-web-api.vercel.app/
+👉 https://ltv-tools.vercel.app/
 
 📖 HƯỚNG DẪN KÍCH HOẠT:
 1. Tải và cài đặt LTVStudio trên máy tính của bạn.

@@ -32,7 +32,7 @@ Dự án Web API & License Manager của **LTVStudio** được xây dựng theo
 
 4. **Bấm Deploy:**
    - Vercel sẽ tự động build frontend, liên kết Serverless Function tại `api/` và cấp phát domain HTTPS miễn phí dạng:
-     `https://ltvstudio-web-api.vercel.app`
+     `https://ltv-tools.vercel.app`
 
 ---
 
@@ -102,16 +102,16 @@ Hệ thống được khởi tạo sẵn 3 tài khoản mẫu tương ứng 3 va
 ## 🔗 Các Đường Link Sau Khi Deploy
 
 - **Trang chủ Khách hàng (Landing & Tải App):**  
-  `https://ltvstudio-web-api.vercel.app/`
+  `https://ltv-tools.vercel.app/`
 - **Cổng Tra cứu Bản quyền Online (React SPA):**  
-  `https://ltvstudio-web-api.vercel.app/lookup`
+  `https://ltv-tools.vercel.app/lookup`
 - **Trung tâm Quản trị Admin (React Dashboard):**  
-  `https://ltvstudio-web-api.vercel.app/admin`
+  `https://ltv-tools.vercel.app/admin`
 - **Cổng Tài liệu & API Specs (Swagger-like Docs):**  
-  `https://ltvstudio-web-api.vercel.app/docs`
+  `https://ltv-tools.vercel.app/docs`
 - **API Check Version dành cho Ứng dụng Desktop:**  
-  `https://ltvstudio-web-api.vercel.app/api/transform/version`
+  `https://ltv-tools.vercel.app/api/transform/version`
 - **API Verify Key & Khóa HWID:**  
-  `https://ltvstudio-web-api.vercel.app/api/auth/verify`
+  `https://ltv-tools.vercel.app/api/auth/verify`
 - **API Kiểm tra Sức khỏe Uptime:**  
-  `https://ltvstudio-web-api.vercel.app/api/health`
+  `https://ltv-tools.vercel.app/api/health`
