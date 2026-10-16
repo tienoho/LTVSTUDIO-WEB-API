@@ -7,7 +7,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { routeRequest } from './router';
 import { checkRateLimit } from '../security/rate-limiter';
 import { parseAdminSessionToken, isSecretValid, ROLE_PERMISSIONS } from '../security/auth';
+import * as neonDb from '../db';
+import { DEFAULT_LICENSES, DEFAULT_VERSION, DEFAULT_USERS } from '../config/constants';
 import type { AdminRole } from '../../types/index';
+
+let dbInitPromise: Promise<boolean> | null = null;
+async function ensureDbInitialized(): Promise<void> {
+  if (neonDb.isNeonConfigured() && !dbInitPromise) {
+    dbInitPromise = neonDb.initDb(DEFAULT_LICENSES, DEFAULT_VERSION, DEFAULT_USERS).catch(err => {
+      console.error('[Neon Postgres] Auto-init error in Next.js adapter:', err?.message || err);
+      dbInitPromise = null;
+      return false;
+    });
+  }
+  if (dbInitPromise) {
+    await dbInitPromise;
+  }
+}
 
 export class NextHttpContext {
   public readonly req: NextRequest;
@@ -187,6 +203,9 @@ export class NextHttpContext {
 
   public toNextResponse(): NextResponse {
     const headers: Record<string, string> = {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'SAMEORIGIN',
       'X-XSS-Protection': '1; mode=block',
@@ -215,6 +234,9 @@ export async function handleNextApiRequest(
   req: NextRequest, 
   params?: { slug?: string[] }
 ): Promise<NextResponse> {
+  // Ensure DB schema initialized when configured
+  await ensureDbInitialized();
+
   const ctx = new NextHttpContext(req, params);
 
   // 1. CWE-598 Mitigation

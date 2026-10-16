@@ -151,6 +151,9 @@ export default function AdminPage() {
     try {
       const keys = await LicenseService.createLicenses(data);
       showToast(`Đã tạo thành công ${keys.length} mã bản quyền mới!`, 'success');
+      if (Array.isArray(keys) && keys.length > 0) {
+        setLicenses(prev => [...keys, ...prev.filter(p => !keys.some(k => k.key === p.key))]);
+      }
       loadData();
       if (keys.length > 1) {
         setBatchCreatedKeys(keys.map(k => k.key));

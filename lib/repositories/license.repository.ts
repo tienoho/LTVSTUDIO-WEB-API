@@ -91,15 +91,28 @@ export async function getLicenseByKey(key: string): Promise<License | null> {
 }
 
 export async function createLicensesBatch(newKeys: License[]): Promise<void> {
+  let dbSuccess = false;
+  let dbError: any = null;
+
   if (neonDb.isNeonConfigured()) {
     try {
-      await neonDb.createLicensesBatch(newKeys);
-    } catch (e) {}
+      const res = await neonDb.createLicensesBatch(newKeys);
+      if (res && res.length > 0) {
+        dbSuccess = true;
+      }
+    } catch (e: any) {
+      dbError = e;
+      console.error('[License Repository] Error batch creating licenses in DB:', e?.message || e);
+    }
   }
 
   const currentList = await getFallbackLicenses();
   currentList.push(...newKeys);
   await saveFallbackLicenses(currentList);
+
+  if (neonDb.isNeonConfigured() && !dbSuccess) {
+    throw new Error(dbError?.message || 'Lỗi đồng bộ CSDL: Không thể ghi mã bản quyền vào cơ sở dữ liệu Cloud (Neon Postgres)!');
+  }
 }
 
 export async function updateLicense(key: string, updates: Partial<License>): Promise<void> {

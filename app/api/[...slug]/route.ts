@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleNextApiRequest } from '@/lib/http/next-adapter';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params;
   return handleNextApiRequest(req, params);

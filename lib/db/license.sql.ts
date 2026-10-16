@@ -80,7 +80,10 @@ export async function createLicensesBatch(items: License[]): Promise<License[] |
 
   try {
     for (const item of items) {
-      await createLicense(item);
+      const created = await createLicense(item);
+      if (!created) {
+        throw new Error(`Failed to insert license ${item.key}`);
+      }
     }
     return items;
   } catch (err: any) {

@@ -19,6 +19,7 @@ export async function apiRequest<T = any>(
 
   const headers: Record<string, string> = {
     'Accept': 'application/json',
+    'Cache-Control': 'no-cache',
   };
 
   if (options.data !== undefined) {
@@ -32,6 +33,7 @@ export async function apiRequest<T = any>(
   const config: RequestInit = {
     method,
     headers,
+    cache: 'no-store',
   };
 
   if (options.data !== undefined && method !== 'GET') {

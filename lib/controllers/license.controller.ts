@@ -263,8 +263,12 @@ export class LicenseController {
     if (neonDb.isNeonConfigured()) {
       try {
         const licenses = await neonDb.getLicenses(q, status, plan);
-        return ctx.sendJson(200, { licenses: licenses || [] });
-      } catch (e) {}
+        if (licenses !== null) {
+          return ctx.sendJson(200, { licenses: licenses });
+        }
+      } catch (e: any) {
+        console.error('[License Controller] Error querying Neon DB licenses:', e?.message || e);
+      }
     }
 
     const licenses = await licenseRepo.getFallbackLicenses();
@@ -331,7 +335,14 @@ export class LicenseController {
       });
     }
 
-    await licenseRepo.createLicensesBatch(newKeys);
+    try {
+      await licenseRepo.createLicensesBatch(newKeys);
+    } catch (err: any) {
+      return ctx.sendJson(500, {
+        error: 'DatabaseError',
+        message: err?.message || 'Không thể lưu mã bản quyền vào cơ sở dữ liệu. Vui lòng thử lại!'
+      });
+    }
 
     return ctx.sendJson(200, {
       success: true,
