@@ -32,13 +32,22 @@ export class HttpContext {
     });
 
     // Vercel Serverless Function & Rewrite Compatibility
-    const matchedPath = req.headers['x-matched-path'];
+    const matchedPath = req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-original-url'];
     if (typeof matchedPath === 'string' && matchedPath.startsWith('/api')) {
       path = matchedPath.split('?')[0];
-    } else if (q.slug) {
-      const slugVal = Array.isArray(q.slug) ? q.slug.join('/') : q.slug;
-      if (slugVal && !path.includes(slugVal)) {
-        path = '/api/' + slugVal;
+    } else {
+      const slug = q.slug || (req as any).query?.slug;
+      const apiPath = q.apiPath || (req as any).query?.apiPath;
+      if (slug) {
+        const slugVal = Array.isArray(slug) ? slug.join('/') : slug;
+        if (slugVal && !path.includes(slugVal)) {
+          path = '/api/' + slugVal;
+        }
+      } else if (apiPath) {
+        const apiPathVal = Array.isArray(apiPath) ? apiPath.join('/') : apiPath;
+        if (apiPathVal && !path.includes(apiPathVal)) {
+          path = '/api/' + apiPathVal;
+        }
       }
     }
 
@@ -72,6 +81,33 @@ export class HttpContext {
 
   public async getBody(maxBytes: number = 65536): Promise<any> {
     if (this.cachedBody !== null) return this.cachedBody;
+
+    // Vercel Serverless pre-parsed body support
+    const rawReq = this.req as any;
+    if (rawReq.body !== undefined && rawReq.body !== null) {
+      if (typeof rawReq.body === 'object') {
+        this.cachedBody = rawReq.body;
+        return this.cachedBody;
+      }
+      if (typeof rawReq.body === 'string' && rawReq.body.trim()) {
+        try {
+          this.cachedBody = JSON.parse(rawReq.body);
+          return this.cachedBody;
+        } catch {
+          this.cachedBody = {};
+          return this.cachedBody;
+        }
+      }
+      if (Buffer.isBuffer(rawReq.body)) {
+        try {
+          this.cachedBody = JSON.parse(rawReq.body.toString('utf8'));
+          return this.cachedBody;
+        } catch {
+          this.cachedBody = {};
+          return this.cachedBody;
+        }
+      }
+    }
 
     return new Promise((resolve, reject) => {
       let bodyStr = '';

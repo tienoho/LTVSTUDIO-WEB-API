@@ -22,7 +22,7 @@ export const Footer: React.FC = () => {
             </p>
             <div className="flex items-center gap-2 text-xs text-emerald-400 pt-1">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Máy chủ API đang hoạt động ổn định (Serverless Neon Cloud)
+              Máy chủ API đang hoạt động ổn định
             </div>
           </div>
 
@@ -33,7 +33,7 @@ export const Footer: React.FC = () => {
               <li><Link to="/" className="hover:text-cyan-400 transition-colors">Cổng Tải & Trang Chủ</Link></li>
               <li><Link to="/lookup" className="hover:text-cyan-400 transition-colors">Tra Cứu Mã Bản Quyền</Link></li>
               <li><Link to="/admin" className="hover:text-cyan-400 transition-colors">Bảng Điều Khiển Quản Trị</Link></li>
-              <li><Link to="/docs" className="hover:text-cyan-400 transition-colors">Tài Liệu Kỹ Thuật API</Link></li>
+              <li><Link to="/docs" className="hover:text-cyan-400 transition-colors">Hướng Dẫn Sử Dụng</Link></li>
             </ul>
           </div>
 
@@ -53,7 +53,7 @@ export const Footer: React.FC = () => {
             © {new Date().getFullYear()} LTVStudio Ecosystem. Bản quyền thuộc về LTVStudio Team.
           </div>
           <div className="flex items-center gap-1">
-            Thiết kế & phát triển với <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> bởi DeepMind Antigravity Pair-Programming.
+            Thiết kế & phát triển với <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> bởi Bố Tiến.
           </div>
         </div>
       </div>

@@ -29,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileNav, onOpenChangePas
     { path: '/', label: 'Trang Chủ', icon: Sparkles },
     { path: '/lookup', label: 'Tra Cứu Key', icon: Search },
     { path: '/admin', label: 'Quản Trị', icon: ShieldCheck },
-    { path: '/docs', label: 'Tài Liệu API', icon: BookOpen },
+    { path: '/docs', label: 'Hướng Dẫn', icon: BookOpen },
   ];
 
   const getRoleBadgeClass = (role: string) => {

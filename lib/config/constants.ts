@@ -16,7 +16,9 @@ export const AUDITOR_SECRET = (process.env.AUDITOR_SECRET || 'ltvstudio_auditor_
 export const AUTH_TOKEN_SECRET = process.env.AUTH_TOKEN_SECRET || (ADMIN_SECRET + '_ltv_signature_secret_2026');
 export const AUTH_TOKEN_TTL_SECONDS = parseInt(process.env.AUTH_TOKEN_TTL_SECONDS || '86400', 10);
 
-export const LOCAL_DATA_DIR = path.join(__dirname, '..', '..', 'data');
+export const LOCAL_DATA_DIR = typeof __dirname !== 'undefined'
+  ? path.join(__dirname, '..', '..', 'data')
+  : path.join(process.cwd(), 'data');
 export const TMP_DATA_DIR = '/tmp';
 
 export const DEFAULT_VERSION: VersionConfig = (rawVersion as VersionConfig) || {

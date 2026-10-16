@@ -32,7 +32,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose, onO
     { path: '/', label: 'Trang Chủ', icon: Sparkles },
     { path: '/lookup', label: 'Tra Cứu Key', icon: Search },
     { path: '/admin', label: 'Bảng Quản Trị', icon: ShieldCheck },
-    { path: '/docs', label: 'Tài Liệu API', icon: BookOpen },
+    { path: '/docs', label: 'Hướng Dẫn', icon: BookOpen },
   ];
 
   const handleLinkClick = () => {

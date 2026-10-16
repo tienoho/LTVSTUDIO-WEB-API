@@ -3,9 +3,11 @@
  * Adheres to Single Responsibility Principle (SRP)
  */
 
+import { createRequire } from 'module';
 import type { DbHealth } from '../../types/index';
 
 let sqlClient: any = null;
+const safeRequire = typeof require !== 'undefined' ? require : createRequire(import.meta.url);
 
 export function getDatabaseUrl(): string {
   return process.env.DATABASE_URL || 
@@ -28,13 +30,13 @@ export function getClient(): any {
 
   try {
     // Dynamic require for serverless environment compatibility
-    const { neon } = require('@neondatabase/serverless');
+    const { neon } = safeRequire('@neondatabase/serverless');
     sqlClient = neon(connStr);
     return sqlClient;
   } catch (err: any) {
     console.warn('[Neon Postgres] @neondatabase/serverless not available, falling back:', err.message);
     try {
-      const { Pool } = require('pg');
+      const { Pool } = safeRequire('pg');
       const pool = new Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false } });
       sqlClient = async (strings: any, ...values: any[]) => {
         if (Array.isArray(strings) && (strings as any).raw) {

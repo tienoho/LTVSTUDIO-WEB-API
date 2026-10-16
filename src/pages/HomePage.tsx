@@ -73,13 +73,13 @@ export const HomePage: React.FC = () => {
 
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold mb-6 shadow-sm shadow-cyan-500/20 animate-pulse">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Hệ Thống Cấp Phép & Xác Thực Bản Quyền LTVStudio Cloud</span>
+          <span>Hệ Thống Cấp Phép & Xác Thực Bản Quyền LTVStudio</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight sm:leading-none">
-          Bảo Vệ Bản Quyền &{' '}
+          LTV
           <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            Khóa Phần Cứng HWID
+            Studio
           </span>
         </h1>
 
