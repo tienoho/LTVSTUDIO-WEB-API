@@ -11,6 +11,9 @@ export const AuthService = {
       '/api/admin/login',
       {
         method: 'POST',
+        headers: {
+          'x-admin-key': credentials.secret
+        },
         data: {
           username: credentials.username,
           password: credentials.secret,

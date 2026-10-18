@@ -26,6 +26,7 @@ async function ensureDbInitialized(): Promise<void> {
 }
 
 export class NextHttpContext {
+  public readonly rawReq: NextRequest;
   public readonly req: NextRequest;
   public readonly pathname: string;
   public readonly method: string;
@@ -41,6 +42,7 @@ export class NextHttpContext {
   public isResponded: boolean = false;
 
   constructor(req: NextRequest, params?: { slug?: string[] }) {
+    this.rawReq = req;
     const headersObj: Record<string, string> = {};
     req.headers.forEach((val: string, key: string) => {
       headersObj[key.toLowerCase()] = val;
@@ -113,19 +115,38 @@ export class NextHttpContext {
     if (this.cachedBody !== null) return this.cachedBody;
 
     try {
-      const contentType = this.req.headers.get('content-type') || '';
+      const reqToUse = this.rawReq || (this.req as any);
+      const contentType = (this.req.headers as any).get ? this.req.headers.get('content-type') || '' : '';
+      
       if (contentType.includes('application/json')) {
-        this.cachedBody = await this.req.json();
+        try {
+          this.cachedBody = await reqToUse.clone().json();
+        } catch {
+          this.cachedBody = await reqToUse.json();
+        }
       } else {
-        const text = await this.req.text();
-        if (text && text.trim()) {
-          try {
-            this.cachedBody = JSON.parse(text);
-          } catch {
+        try {
+          const text = await reqToUse.clone().text();
+          if (text && text.trim()) {
+            try {
+              this.cachedBody = JSON.parse(text);
+            } catch {
+              this.cachedBody = {};
+            }
+          } else {
             this.cachedBody = {};
           }
-        } else {
-          this.cachedBody = {};
+        } catch {
+          const text = await reqToUse.text();
+          if (text && text.trim()) {
+            try {
+              this.cachedBody = JSON.parse(text);
+            } catch {
+              this.cachedBody = {};
+            }
+          } else {
+            this.cachedBody = {};
+          }
         }
       }
       return this.cachedBody || {};
