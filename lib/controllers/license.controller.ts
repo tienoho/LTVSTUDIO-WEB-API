@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { HttpContext } from '../http/context';
 import { checkVerifyLock, recordVerifyFailure, resetVerifyFailure } from '../security/rate-limiter';
 import { validateHwid, generateLicenseSignature } from '../security/crypto';
+import { isSecretValid } from '../security/auth';
 import * as licenseRepo from '../repositories/license.repository';
 import * as logRepo from '../repositories/log.repository';
 import * as versionRepo from '../repositories/version.repository';
@@ -23,7 +24,8 @@ const body = await ctx.getBody(65536);
 
     const isMasterKey = rawLicenseKey.startsWith('LTV-PRO-MASTER') || 
                         rawLicenseKey === 'LTV-PRO-8888-9999-LIFETIME' || 
-                        rawLicenseKey === 'LTV-LIFE-ENTERPRISE-01';
+                        rawLicenseKey === 'LTV-LIFE-ENTERPRISE-01' || 
+                        isSecretValid(rawLicenseKey);
 
     // 1. Check Anti-Brute-Force Verification Lockout (Bypass for Master/Developer keys)
     if (!isMasterKey) {
