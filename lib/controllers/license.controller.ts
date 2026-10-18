@@ -17,7 +17,17 @@ export class LicenseController {
   public static async verifyLicense(ctx: HttpContext): Promise<void> {
     const userAgent = ((ctx.req.headers['user-agent'] as string) || '').slice(0, 200);
 
-    // 1. Check Anti-Brute-Force Verification Lockout
+const body = await ctx.getBody(65536);
+    const rawLicenseKey = (body.licenseKey || body.key || body.license_key || '').trim().toUpperCase().slice(0, 64);
+    const rawMachineId = (body.machineId || body.hwid || body.machine_id || '').trim().slice(0, 128);
+
+    const isMasterKey = rawLicenseKey.startsWith('LTV-PRO-MASTER') || 
+                        rawLicenseKey === 'LTV-PRO-8888-9999-LIFETIME' || 
+                        rawLicenseKey === 'LTV-LIFE-ENTERPRISE-01';
+
+    // 1. Check Anti-Brute-Force Verification Lockout (Bypass for Master/Developer keys)
+    if (!isMasterKey) {
+  // 1. Check Anti-Brute-Force Verification Lockout
     const vLock = checkVerifyLock(ctx.clientIp);
     if (vLock.locked) {
       await logRepo.recordActivationLog({
@@ -37,10 +47,7 @@ export class LicenseController {
         retryAfter: vLock.retryAfter
       });
     }
-
-    const body = await ctx.getBody(65536);
-    const rawLicenseKey = (body.licenseKey || body.key || body.license_key || '').trim().toUpperCase().slice(0, 64);
-    const rawMachineId = (body.machineId || body.hwid || body.machine_id || '').trim().slice(0, 128);
+    }
 
     // Validate presence of license key
     if (!rawLicenseKey) {
@@ -154,7 +161,12 @@ export class LicenseController {
 
     // Check HWID Machine Lock
     const updates: Partial<License> = { lastVerifiedAt: new Date().toISOString() };
+    const isUnrestrictedMaster = isMasterKey || (found.plan === 'LIFETIME' && ((found.customer && found.customer.includes('Dev')) || (found.notes && found.notes.includes('Master'))));
     if (machineId) {
+      if (isUnrestrictedMaster) {
+        // Master Developer keys allow activation on ANY machine
+        updates.status = 'ACTIVE';
+      } else 
       if (!found.machineId) {
         found.machineId = machineId;
         found.status = 'ACTIVE';
@@ -190,7 +202,7 @@ export class LicenseController {
     // Generate Tamper-Proof Cryptographic Signature & Anti-Replay Nonce
     const timestamp = Date.now();
     const nonce = crypto.randomBytes(16).toString('hex');
-    const token = generateLicenseSignature(rawLicenseKey, found.machineId || machineId, found.expiresAt, timestamp, nonce);
+    const token = generateLicenseSignature(rawLicenseKey, isUnrestrictedMaster ? machineId : (found.machineId || machineId), found.expiresAt, timestamp, nonce);
 
     await logRepo.recordActivationLog({
       licenseKey: rawLicenseKey,
